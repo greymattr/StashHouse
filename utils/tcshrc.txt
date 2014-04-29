@@ -1,0 +1,38 @@
+# .tcshrc
+
+# User specific aliases and functions
+
+alias rm        'rm -i'
+alias lct       'locate'
+alias proc      'ps -aux | more'
+alias mv        'mv -i'
+alias cls       'clear'
+alias ls        'ls -F --color --sort=extension'
+alias ll        'ls -al'
+alias clean     'rm -fr *.o'
+alias grep      'grep --color=auto'
+alias shred     'shred -v'
+alias xo        'xdg-open'
+alias diffcol   'diff --suppress-common-lines --speed-large-files -y'
+alias notify_me  'zenity --info --text "--- All Done ---" &'
+alias gfl       'get_flash_videos'
+alias cfmt      'astyle -vjA3 -D --indent=spaces=2'
+alias make_patch 'diff -Naur'
+alias kscope     'cbrowser'
+alias pine       'alpine'
+alias git-submit 'git push origin master'
+
+setenv PATH ":/usr/sbin:/sbin:./:~/bin:~/bin/scripts:"$PATH":/usr/local/bin:/usr/local/sbin"
+
+setenv LDEV "~/werk"
+
+
+# default prompt
+set prompt='[%n@%m %c][%h]# '
+
+#   my/tmp 21)
+#set prompt = "%B%U%C2%u %h)%b "
+
+# user@hostpwd[hist]time%
+#set prompt="%n@%m%B%~%b[%h]%B%T%b%#"
+

@@ -1,0 +1,171 @@
+set nocompatible
+
+set smartindent
+
+set showmatch
+set incsearch
+
+" do not keep a backup file
+set nobackup
+set nowb
+set noswapfile
+
+" wrap off
+set nowrap
+
+" tabs are only 2 characters
+set tabstop=2
+
+" auto indent uses 2 charaters
+set shiftwidth=2
+
+" spaces instead of tabs
+set expandtab
+
+" set auto-indentation on
+set autoindent
+
+" show line numbers
+set number
+
+" fold using markers
+set foldmethod=marker
+
+" powerful backspaces
+set backspace=indent,eol,start
+
+" highlight search terms
+set hlsearch
+
+" dont wrap words
+set textwidth=0
+
+" history
+set history=50
+
+" 1000 undo levels
+set undolevels=1000
+
+" show partial commands
+set showcmd
+
+" show matching braces
+set showmatch
+
+" Start scrolling at this number of lines from the bottom.
+set scrolloff=2
+
+" Start scrolling horizontally at this number of columns.
+set sidescrolloff=5
+
+" Status line takes up this many lines.
+" Make the status line always visible.
+set laststatus=2
+
+
+" Enable the mouse.
+set mouse=a
+
+" Hide the mouse while typing.
+set mousehide
+
+" Enable the popup menu.
+set mousem=popup
+
+" auto-detect the file type
+filetype plugin indent on
+
+" on the syntax by default
+if has("syntax")
+syntax on
+endif
+
+" C/C++
+au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal cindent
+au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal comments=
+au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal et
+
+set ofu=syntaxcomplete#Complete
+
+
+function! BufSel(pattern)
+  let bufcount = bufnr("$")
+  let currbufnr = 1
+  let nummatches = 0
+  let firstmatchingbufnr = 0
+  while currbufnr <= bufcount
+    if(bufexists(currbufnr))
+      let currbufname = bufname(currbufnr)
+      if(match(currbufname, a:pattern) > -1)
+        echo currbufnr . ": ". bufname(currbufnr)
+        let nummatches += 1
+        let firstmatchingbufnr = currbufnr
+      endif
+    endif
+    let currbufnr = currbufnr + 1
+  endwhile
+  if(nummatches == 1)
+    execute ":buffer ". firstmatchingbufnr
+  elseif(nummatches > 1)
+    let desiredbufnr = input("Enter buffer number: ")
+    if(strlen(desiredbufnr) != 0)
+      execute ":buffer ". desiredbufnr
+    endif
+  else
+    echo "No matching buffers"
+  endif
+endfunction
+
+"Bind the BufSel() function to a user-command
+command! -nargs=1 Bs :call BufSel("<args>")
+
+nnoremap <F5> :buffers<CR>:buffer<Space>
+
+" Serch word under cursor in current dir
+map <C-F> <esc>:Grep<CR>
+
+" command TAG :Tlist
+" command TAGSUPDATE :TlistUpdate
+" command TAGSAVE :TlistSessionSave tlist
+" command TAGLOAD :TlistSessionLoad tlist
+" command FILES   :Vex
+command DIR  :NERDTree
+map <C-n> :NERDTreeToggle<CR>
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
+
+"if has("gui_running")
+  " GUI is running or is about to start.
+  " Maximize gvim window.
+"  set lines=999 columns=999
+"else
+  " This is console Vim.
+"  if exists("+lines")
+"    set lines=50
+"  endif
+"  if exists("+columns")
+"    set columns=100
+"  endif
+"endif
+
+nnoremap :p4add    :!p4 add %
+nnoremap :p4revert :!p4 revert %
+nnoremap :p4edit   :!p4 edit %
+nnoremap :p4diff   :!p4 diff %
+
+nnoremap :EXIT   :qall!
+
+nnoremap <F4> :ConqueTermSplit tcsh<CR>
+let g:ConqueTerm_CloseOnEnd = 1
+let g:ConqueTerm_Color = 1
+command TERM ConqueTermSplit tcsh
+command TTERM ConqueTermSplit tcsh
+
+" anything after col 80 will be highlighted
+" highlight rightMargin ctermfg=lightblue
+" match rightMargin /.\%>79v/
+
+
+"set statusline=%F%m%r%h%w[%L][%{&ff}]%y[%p%%][%04l,%04v
+
+set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [ASCII=\%03.3b]\ [HEX=\%02.2B]\ [POS=%04l,%04v][%p%%]\ [LEN=%L]
+
