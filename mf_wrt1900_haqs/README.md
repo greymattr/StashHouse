@@ -1,4 +1,6 @@
 This directory mostly contains firmware images for the WRT1900AC Linksys router and the .config files needed to recreate them.
+Most of this is based on the code here : https://github.com/jimmychungbelkin/Mamba/tree/master .  This repo is just for my 
+own personal changes. 
 
   openwrt-greymattr-utimate-13.img - Is an image I built with many extra packages for usb, filesystems, pentesting, and media.
   
