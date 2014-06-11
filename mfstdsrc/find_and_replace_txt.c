@@ -44,9 +44,9 @@ int find_and_replace_text( char *sbuf, int buflen, char *from, char *to )
 	} else {
 		//copy the rest of the buffer
 		memcpy(buf1 + offs, sbuf + roffs, strlen(sbuf + roffs));
+		memset(sbuf, 0, buflen);
+		memcpy(sbuf, buf1, strlen(buf1));
 	}
-	memset(sbuf, 0, buflen);
-	memcpy(sbuf, buf1, strlen(buf1));
 	free(buf1);
 	return 0;
 }
