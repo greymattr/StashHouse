@@ -73,7 +73,7 @@ int16_t init_cfg( struct d_cfg *d, uint8_t flag )
 int16_t load_cfg( struct d_cfg *d )
 {
   uint8_t my_crc;
-  uint16_t i;
+  uint16_t i = 0;
   uint8_t c[ CFG_SIZE + 1];
 
   BZERO(c, sizeof(c));
@@ -98,8 +98,8 @@ int16_t save_cfg( struct d_cfg *d )
   uint16_t i;
   uint8_t c[ CFG_SIZE ];
 
-  memcpy(c, d, CFG_SIZE);
   d->dcrc = CRC8((uint8_t *)d, ( CFG_SIZE - (sizeof(uint8_t))));
+  memcpy(c, d, CFG_SIZE);
   for(i=0;i<=CFG_SIZE;i++){
     EEPROM.write(CFG_ADDR + i ,c[i]);
     //delay( SHORT_DELAY );
