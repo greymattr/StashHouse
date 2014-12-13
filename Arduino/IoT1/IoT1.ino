@@ -40,6 +40,7 @@ Copyright (c) 2014 Matthew Fatheree
 #include <stdarg.h>
 #include <avr/pgmspace.h>
 #include "iot_cfg.h"
+#include "iot_cmd.h"
 
 #define MIN_CMD_LEN     2
 
@@ -54,6 +55,8 @@ void p_err( int16_t err );
 void p( char *fmt, ... );
 
 
+void(* resetFunc) (void) = 0;
+
 static struct d_cfg dCfg;
 
 extern uint8_t crc1, crc2;
@@ -61,11 +64,9 @@ extern uint8_t crc1, crc2;
 extern uint8_t cfg_inited = 0;
 
 
-//#define CFG_HEX_DUMP
-
 void print_cfg( struct d_cfg *d )
 {
-	uint8_t i = 0;
+//	uint8_t i = 0;
 	p("\n\rConfiguration\n\r");
 	p(" Ver      : %d\n\r", d->ver);
 	p(" ID       : %d\n\r", d->id);
@@ -85,7 +86,7 @@ void print_cfg( struct d_cfg *d )
 #endif
 	p("--------------------------------\n\r");  
 	p(" CRC      : %d\n\r", d->dcrc);
-	p(" Size     : %d\n\r", CFG_SIZE);
+//	p(" Size     : %d\n\r", CFG_SIZE);
 	p("\n\r");
 }
 
@@ -137,28 +138,44 @@ void loop() {
 	}
 
 	while(1){
+    BZERO(selection, sizeof(selection));
     p("\n\r> ");
     ok = get_serial_input(selection, NULL);
     if( ok ){
-      if( strncmp((const char *)selection, "config", strlen("config")) == 0){
-        do_config( );
-      }
-      if( strncmp((const char *)selection, "show", strlen("show")) == 0){
-        print_cfg( &dCfg );
-      }
-      if( strncmp((const char *)selection, "save", strlen("save")) == 0){
-        print_cfg( &dCfg );
-        save_cfg( &dCfg );
-        p_ok();
-      }
-      if( strncmp((const char *)selection, "load", strlen("load")) == 0){
-        ok = load_cfg( &dCfg );
-        if( ok != CFG_ERR_OK ){
-          p_err(ok);
-          print_cfg( &dCfg );
-        } else {
-          p_ok();
+      ok = get_command( selection );
+      if( ok ) {
+        switch( ok )
+        {
+          case config:
+            do_config();
+          break;
+          case show:
+            print_cfg( &dCfg );
+          break;
+          case load:
+            ok = load_cfg( &dCfg );
+            if( ok != CFG_ERR_OK ){
+              p_err(ok);
+              print_cfg( &dCfg );
+            } else {
+              p_ok();
+            }
+          break;
+          case save:
+            print_cfg( &dCfg );
+            save_cfg( &dCfg );
+            p_ok();
+          break;
+          case reset:
+            resetFunc();
+          break;
+          default:
+            goto err_unknown;
+          break;
         }
+      } else {
+        err_unknown:
+        p_err(CMD_ERR_UNKNOWN);
       }
     }
 		delay(1000);
@@ -188,7 +205,7 @@ void user_pause()
 
 uint16_t get_serial_ipaddr( uint8_t *ipaddr )
 {
-  uint8_t buf[4];
+  uint8_t buf[IP_ADDR_LEN];
   uint8_t i = 0;
   uint8_t ok = 0;
   BZERO(buf, sizeof(buf));
@@ -209,7 +226,7 @@ uint16_t get_serial_ipaddr( uint8_t *ipaddr )
 
 uint16_t get_serial_ethaddr( uint8_t *ethaddr )
 {
-  uint8_t buf[6];
+  uint8_t buf[ MAC_ADDR_LEN ];
   uint8_t i = 0;
   uint8_t ok = 0;
   BZERO(buf, sizeof(buf));
@@ -232,7 +249,7 @@ uint16_t get_serial_ethaddr( uint8_t *ethaddr )
 uint16_t get_serial_int( int16_t number )
 {
   uint16_t ret =  0;
-  uint8_t buf[10];
+  uint8_t buf[ MAC_ADDR_LEN ];
 
   BZERO(buf, sizeof(buf));
   p("( %d ) ", number);
@@ -246,7 +263,7 @@ uint16_t get_serial_int( int16_t number )
 uint16_t get_serial_hex( int16_t number )
 {
   uint16_t ret =  0;
-  uint8_t buf[10];
+  uint8_t buf[ MAC_ADDR_LEN ];
 
   BZERO(buf, sizeof(buf));
   p("( %02X ) ", number);
@@ -302,7 +319,6 @@ uint16_t get_serial_input( uint8_t *input, uint8_t delim )
   memcpy(input, commandbuffer, i);
   return i;
 }
-
 
 #define MAX_PRINTF_LEN  128
 

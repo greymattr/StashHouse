@@ -25,12 +25,6 @@ Copyright (c) 2014 Matthew Fatheree
 
 #include "iot_cfg.h"
 
-#if defined NDEBUG
-#define TRACE( format, ... )
-#else
-#define TRACE( format, ... )   printf( "%s::%s(%d)" format, __FILE__, __FUNCTION__,  __LINE__, __VA_ARGS__ )
-#endif
-
 struct d_cfg dCfg;
 struct net_cfg nCfg;
 struct net_auth authCfg; 
@@ -39,9 +33,9 @@ static uint8_t old_crc = 0;
 static uint8_t cfg_inited = 0;
 
 /*  default config */
-uint8_t default_mac_addr[6] = { 
+uint8_t default_mac_addr[ MAC_ADDR_LEN ] = { 
   0x00, 0x80, 0xA3, 0X13, 0x13, 0x26 };
-uint8_t default_ip_addr[4] = { 
+uint8_t default_ip_addr[ IP_ADDR_LEN ] = { 
   192, 168, 0, 113 };
 uint16_t default_port = 1313;
 uint16_t default_id = 1;
@@ -79,10 +73,8 @@ int16_t load_cfg( struct d_cfg *d )
   BZERO(c, sizeof(c));
   for(i=0;i<=CFG_SIZE;i++){
     c[i] = EEPROM.read( CFG_ADDR + i);
-    //delay( SHORT_DELAY );
   }
   my_crc = CRC8((uint8_t *)&c, ( CFG_SIZE - (sizeof(uint8_t))));
-  //memcpy(d, c, CFG_SIZE);
   if( my_crc != c[CFG_SIZE - 1] ){
     crc1 = my_crc;
     crc2 = c[CFG_SIZE - 1];
@@ -147,9 +139,11 @@ uint8_t *get_device_name( void )
   return dCfg.name;
 }
 
-
-//CRC-8 - based on the CRC8 formulas by Dallas/Maxim
-//code released under the therms of the GNU GPL 3.0 license
+/*
+CRC-8 - based on the CRC8 formulas by Dallas/Maxim
+code released under the therms of the GNU GPL 3.0 license
+*/
+#if 0
 uint8_t CRC8_2(uint8_t *data, uint8_t len) {
   uint8_t crc = 0x00;
   while (len--) {
@@ -165,6 +159,7 @@ uint8_t CRC8_2(uint8_t *data, uint8_t len) {
   }
   return crc;
 }
+#endif
 
 uint8_t CRC8(uint8_t *message, uint8_t length)
 {
