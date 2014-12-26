@@ -21,92 +21,109 @@ Copyright (c) 2014 Matthew Fatheree
  */
 
 #include <EEPROM.h>
+#include <Arduino.h>  // for type definitions
+#include <stdarg.h>
+#include <avr/pgmspace.h>
+#include "iot_cfg.h"
+#include "iot_cmd.h"
+#include "iot_strings.h"
 
 #define	MIN(a,b)	((a) < (b) ? (a) : (b))
 #define	MAX(a,b)	((a) > (b) ? (a) : (b))
 
 #define BZERO(x, y)    memset(x, 0, y)
 
-#if 0
-#define u_int8 unsigned char
-#define int8 char
-#define u_int16 unsigned int
-#define int16 int
-#endif
-
 #define MAX_USER_INPUT_LEN  64
 
-#include <Arduino.h>  // for type definitions
-#include <stdarg.h>
-#include <avr/pgmspace.h>
-#include "iot_cfg.h"
-#include "iot_cmd.h"
+#define MIN_CMD_LEN         2
 
-#define MIN_CMD_LEN     2
+#define CRLF          "\n\r"
 
-void user_pause();
-int16_t do_config();
+void user_pause( void );
+int16_t do_config( void );
 uint16_t get_serial_ipaddr( uint8_t *ipaddr );
-uint16_t get_serial_int( int16_t number );
+uint16_t get_serial_int( int16_t number, uint8_t max_len );
 uint16_t get_serial_hex( int16_t number );
-uint16_t get_serial_input( uint8_t *input, uint8_t delim );
+uint16_t get_serial_input( uint8_t *input, uint8_t delim, uint8_t max_len );
 void p_ok( void );
 void p_err( int16_t err );
 void p( char *fmt, ... );
+void pln( char *fmt, ... );
+void crlf( );
+void hex_dump( uint8_t *buf, uint16_t len );
 
-
-void(* resetFunc) (void) = 0;
+//void(* resetFunc) (void) = 0;
 
 static struct d_cfg dCfg;
 
 extern uint8_t crc1, crc2;
-
 extern uint8_t cfg_inited = 0;
 
+extern const char *cmd_list[CMD_LIST_LEN];
 
 void print_cfg( struct d_cfg *d )
 {
 //	uint8_t i = 0;
-	p("\n\rConfiguration\n\r");
-	p(" Ver      : %d\n\r", d->ver);
-	p(" ID       : %d\n\r", d->id);
-	p(" Type     : %d\n\r", d->type);
-	p(" Name     : %s\n\r", d->name);
+  uint8_t buf[ MAX_USER_INPUT_LEN  / 4 ];
+
+  crlf();
+	pln("Configuration");
+	pln(" Ver      : %d", d->ver);
+	pln(" ID       : %d", d->id);
+	pln(" Type     : %d", d->type);
+	pln(" Name     : %s", d->name);
 #define SHOW_NETCFG
 #ifdef SHOW_NETCFG
-	p("NetCfg\n\r");
-	p(" Eth Addr : %02X:%02X:%02X:%02X:%02X:%02X\n\r", d->netcfg.eth_addr[0],
+	pln("NetCfg");
+	pln(" Eth Addr : %02X:%02X:%02X:%02X:%02X:%02X", d->netcfg.eth_addr[0],
 	d->netcfg.eth_addr[1], d->netcfg.eth_addr[2], d->netcfg.eth_addr[3],
 	d->netcfg.eth_addr[4], d->netcfg.eth_addr[5]);
-	p(" IP Addr  : %d.%d.%d.%d\n\r", d->netcfg.ip_addr[0],
+	pln(" IP Addr  : %d.%d.%d.%d", d->netcfg.ip_addr[0],
 	d->netcfg.ip_addr[1], d->netcfg.ip_addr[2], d->netcfg.ip_addr[3]);
-	p(" Proto    : %d\n\r", d->netcfg.proto);
-	p(" Port     : %d\n\r", d->netcfg.port);
-	p(" Mode     : %d\n\r", d->netcfg.mode);
+  bits_to_netmask(d->netcfg.netmask, buf);
+  pln(" Netmask  : %d.%d.%d.%d", buf[0],buf[1],buf[2],buf[3]);
+	pln(" Gateway  : %d.%d.%d.%d", d->netcfg.gateway[0],
+      d->netcfg.gateway[1], d->netcfg.gateway[2], d->netcfg.gateway[3]);
+	pln(" Proto    : %d", d->netcfg.proto);
+	pln(" Port     : %d", d->netcfg.port);
+	pln(" Mode     : %d", d->netcfg.mode);
 #endif
-	p("--------------------------------\n\r");  
-	p(" CRC      : %d\n\r", d->dcrc);
+	pln("--------------------------------");  
+	pln(" CRC      : %d", d->dcrc);
 //	p(" Size     : %d\n\r", CFG_SIZE);
-	p("\n\r");
+	crlf();
+}
+
+void print_help( void )
+{
+  uint8_t i;
+  crlf();
+  pln("Commands");
+  for(i=0;i<CMD_LIST_LEN;i++){
+    pln(" %s", cmd_list[i]);
+  }
 }
 
 /* SETUP - MAIN SETUP */
-void setup() {
-	Serial.begin( 115200 );
+void setup( ) {
+	//Serial.begin( 115200 );
+  Serial.begin( 9600 );
 	while( !Serial ) {
 		delay( 500 );
 	}
-	p("reset...\n\r"); 
+	pln("reset..."); 
 }
 
 void p_ok( void )
 {
-  p("\n\rOK\n\r");
+  crlf();
+  pln("OK");
 }
 
 void p_err( int16_t err )
 {
-  p("\n\rERR - %d\n\r", err);
+  crlf();
+  pln("ERR  [ %d ]", err);
 }
 
 void loop() {
@@ -117,14 +134,11 @@ void loop() {
 	if( ok != CFG_ERR_OK ){
 		p_err( ok );
 		print_cfg( &dCfg );
-		p("creating config %d bytes\n\r", CFG_SIZE);
+		pln("creating config %d bytes", CFG_SIZE);
 		ok = init_cfg( &dCfg, CFG_RESET_FLAG);
 		if( ok != CFG_ERR_OK ){
 			p_err(ok);
 		} 
-		else {
-			print_cfg( &dCfg );
-		}
 		ok = save_cfg( &dCfg );
 		if ( ok != CFG_ERR_OK ) {
 			p_err(ok);
@@ -134,13 +148,14 @@ void loop() {
 	} 
 	else {
 		p_ok();
-		print_cfg( &dCfg ); 
+		//print_cfg( &dCfg ); 
 	}
 
 	while(1){
     BZERO(selection, sizeof(selection));
-    p("\n\r> ");
-    ok = get_serial_input(selection, NULL);
+    crlf();
+    p("> ");
+    ok = get_serial_input(selection, NULL, 0);
     if( ok ){
       ok = get_command( selection );
       if( ok ) {
@@ -148,9 +163,11 @@ void loop() {
         {
           case config:
             do_config();
+            p_ok();
           break;
           case show:
             print_cfg( &dCfg );
+            p_ok();
           break;
           case load:
             ok = load_cfg( &dCfg );
@@ -166,8 +183,29 @@ void loop() {
             save_cfg( &dCfg );
             p_ok();
           break;
+          case connect:
+            p_ok();
+          break;
+          case send:
+            p_ok();
+          break;
+          case listen:
+            p_ok();
+          break;
+          case close:
+            p_ok();
+          break;
+          case help:
+            print_help();
+            p_ok;
+          break;
+          case reinit:
+            init_cfg(&dCfg, CFG_RESET_FLAG);
+            p_ok();
+          break;
           case reset:
-            resetFunc();
+            p_ok();
+            software_reset();
           break;
           default:
             goto err_unknown;
@@ -178,25 +216,50 @@ void loop() {
         p_err(CMD_ERR_UNKNOWN);
       }
     }
-		delay(1000);
+		delay(200);
 	}
 }
 
-int16_t do_config()
+
+/* END OF MAIN LOOP */
+
+int16_t do_config( void )
 {
   uint8_t ok = 0;
   uint8_t cur_crc = dCfg.dcrc;
+  uint8_t buf[ MAX_USER_INPUT_LEN ];
+  uint8_t ipbuf[ IP_ADDR_LEN ];
+  uint8_t var;
 
-  p("\n\rConfigure\n\r");
-  if ( get_serial_ipaddr((uint8_t *) &dCfg.netcfg.ip_addr[0] ) == 0){
-    //p("\n\rUser ipaddr: %d.%d.%d.%d\n\r", dCfg.netcfg.ip_addr[0], dCfg.netcfg.ip_addr[1], dCfg.netcfg.ip_addr[2], dCfg.netcfg.ip_addr[3]); 
+  BZERO(buf, sizeof(buf));
+
+  crlf();
+  pln("Configure");  
+  p("Name ( %s ) :", dCfg.name);
+  if ( get_serial_input(buf, NULL, 0) > 0 ){
+    memcpy(&dCfg.name, buf, MIN(strlen((const char *)buf), MAX_NAME_LEN));
   }
+  crlf();
+  pln("Eth Addr ( %02X:%02X:%02X:%02X:%02X:%02X )", dCfg.netcfg.eth_addr[0], dCfg.netcfg.eth_addr[1], dCfg.netcfg.eth_addr[2], dCfg.netcfg.eth_addr[3],dCfg.netcfg.eth_addr[4], dCfg.netcfg.eth_addr[5]); 
   if ( get_serial_ethaddr((uint8_t *) &dCfg.netcfg.eth_addr[0] ) == 0){
     //p("\n\rUser Ethaddr: %02X:%02X:%02X:%02X:%02X:%02X\n\r", dCfg.netcfg.eth_addr[0], dCfg.netcfg.eth_addr[1], dCfg.netcfg.eth_addr[2], dCfg.netcfg.eth_addr[3],dCfg.netcfg.eth_addr[4], dCfg.netcfg.eth_addr[5]); 
   }
+  crlf();
+  pln("IP Addr ( %d.%d.%d.%d )", dCfg.netcfg.ip_addr[0],dCfg.netcfg.ip_addr[1],dCfg.netcfg.ip_addr[2],dCfg.netcfg.ip_addr[3]);
+  if ( get_serial_ipaddr((uint8_t *) &dCfg.netcfg.ip_addr[0] ) == 0){
+    //p("\n\rUser ipaddr: %d.%d.%d.%d\n\r", dCfg.netcfg.ip_addr[0], dCfg.netcfg.ip_addr[1], dCfg.netcfg.ip_addr[2], dCfg.netcfg.ip_addr[3]); 
+  }
+  bits_to_netmask(dCfg.netcfg.netmask, ipbuf);
+  crlf();
+  pln("Netmask ( %d.%d.%d.%d )", ipbuf[0],ipbuf[1],ipbuf[2],ipbuf[3]);
+  if ( get_serial_ipaddr((uint8_t *) ipbuf ) == 0 ) {
+    dCfg.netcfg.netmask = netmask_to_bits(ipbuf);
+    //p("\n\rUser ipaddr: %d.%d.%d.%d\n\r", dCfg.netcfg.ip_addr[0], dCfg.netcfg.ip_addr[1], dCfg.netcfg.ip_addr[2], dCfg.netcfg.ip_addr[3]); 
+  }
+  
 }
 
-void user_pause()
+void user_pause( void )
 {
   while( !Serial.available() ) {
     ;
@@ -209,9 +272,10 @@ uint16_t get_serial_ipaddr( uint8_t *ipaddr )
   uint8_t i = 0;
   uint8_t ok = 0;
   BZERO(buf, sizeof(buf));
-  p("\n\r%d.%d.%d.%d ", ipaddr[0],ipaddr[1],ipaddr[2],ipaddr[3]);
+  crlf();
+  p("%d.%d.%d.%d ", ipaddr[0],ipaddr[1],ipaddr[2],ipaddr[3]);
   for(i=0;i<sizeof(buf);i++){
-    buf[i] = ( uint8_t ) get_serial_int(ipaddr[i]);
+    buf[i] = ( uint8_t ) get_serial_int(ipaddr[i], 3);
   }
   for(i=0;i<sizeof(buf);i++){
     if( ((int16_t)(buf[i]) < 0 ) || ((int16_t)(buf[i]) > 254)) {
@@ -230,7 +294,8 @@ uint16_t get_serial_ethaddr( uint8_t *ethaddr )
   uint8_t i = 0;
   uint8_t ok = 0;
   BZERO(buf, sizeof(buf));
-  p("\n\r%02X:%02X:%02X:%02X:%02X:%02X ", ethaddr[0],ethaddr[1],ethaddr[2],ethaddr[3],ethaddr[4],ethaddr[5]);
+  crlf();
+  p("%02X:%02X:%02X:%02X:%02X:%02X ", ethaddr[0],ethaddr[1],ethaddr[2],ethaddr[3],ethaddr[4],ethaddr[5]);
   for(i=0;i<sizeof(buf);i++){
     buf[i] = ( uint8_t ) get_serial_hex(ethaddr[i]);
     //p("buf[i] = 0x%02X\n\r", buf[i]);
@@ -246,14 +311,14 @@ uint16_t get_serial_ethaddr( uint8_t *ethaddr )
   return ok;
 }
 
-uint16_t get_serial_int( int16_t number )
+uint16_t get_serial_int( int16_t number, uint8_t max_len )
 {
   uint16_t ret =  0;
   uint8_t buf[ MAC_ADDR_LEN ];
 
   BZERO(buf, sizeof(buf));
   p("( %d ) ", number);
-  if ( get_serial_input( buf, '.') ) {
+  if ( get_serial_input( buf, '.', max_len) ) {
     ret = ( uint16_t ) atoi(( const char *) buf );
     if( ( ret >= 0  ) && ( ret <= 0xffff ))return ret;
   }
@@ -267,7 +332,7 @@ uint16_t get_serial_hex( int16_t number )
 
   BZERO(buf, sizeof(buf));
   p("( %02X ) ", number);
-  if ( get_serial_input( buf, ':') ){
+  if ( get_serial_input( buf, ':', 2) ){
     if((buf[1] == 'x' ) || ( buf[1] == 'X')){
       ret = ( uint16_t ) (int)strtol((const char *)buf, NULL, 0);
     } else {
@@ -278,7 +343,7 @@ uint16_t get_serial_hex( int16_t number )
   return number;
 }
 
-uint16_t get_serial_input( uint8_t *input, uint8_t delim )
+uint16_t get_serial_input( uint8_t *input, uint8_t delim, uint8_t max_len )
 {
   uint16_t i=0;
   uint8_t b = 0;
@@ -308,6 +373,7 @@ uint16_t get_serial_input( uint8_t *input, uint8_t delim )
           Serial.write( b );
         }
       }
+      if(( max_len != 0 ) && (i == max_len))break;
     }
   }
   if( i < MIN_CMD_LEN ) {
@@ -322,6 +388,12 @@ uint16_t get_serial_input( uint8_t *input, uint8_t delim )
 
 #define MAX_PRINTF_LEN  128
 
+void crlf()
+{
+  p("%s", CRLF);
+}
+
+
 void p( char *fmt, ... )
 {
   char buf[ MAX_PRINTF_LEN ]; // resulting string limited to 128 chars
@@ -333,3 +405,26 @@ void p( char *fmt, ... )
   Serial.print( buf );
 }
 
+void pln( char *fmt, ... )
+{
+  char buf[ MAX_PRINTF_LEN ]; // resulting string limited to 128 chars
+  va_list args;
+  va_start ( args, fmt );
+  memset( buf, 0, sizeof( buf ) );
+  vsnprintf( buf, MAX_PRINTF_LEN, fmt, args );
+  va_end ( args );
+  p("%s", buf);
+  crlf();
+}
+
+
+void hex_dump( uint8_t *buf, uint16_t len )
+{
+  uint16_t i;
+  crlf();
+  for(i=0;i<len;i++){
+    if((i>0) && ((i%16)==0))crlf();
+    p("%02X ", buf[i]);
+  }
+  crlf();
+}

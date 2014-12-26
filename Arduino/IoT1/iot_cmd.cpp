@@ -22,13 +22,10 @@ THE SOFTWARE.
 #include <Arduino.h>  // for type definitions
 #include <stdarg.h>
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 #include "iot_cmd.h"
 
 enum cmd_no user_cmd;
-
-#define CMD_LIST_LEN  8
-#define MAX_CMD_LEN   16
-
 
 const char *cmd_list[CMD_LIST_LEN] = {
   "config",
@@ -38,6 +35,9 @@ const char *cmd_list[CMD_LIST_LEN] = {
   "connect",
   "send",
   "listen",
+  "close",
+  "help",
+  "reinit",
   "reset"
 };
 
@@ -56,9 +56,10 @@ uint8_t get_command( uint8_t *cmd )
   return 0;
 }
 
-
-
-
+void software_reset( void )
+{
+  asm volatile ("  jmp 0");  
+}
 
 
 

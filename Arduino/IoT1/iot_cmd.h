@@ -23,6 +23,10 @@ THE SOFTWARE.
  
 */
 
+
+#define CMD_LIST_LEN  16
+#define MAX_CMD_LEN   16
+
 #define CMD_ERR_UNKNOWN       -20
 #define CMD_ERR_OK            0
 
@@ -34,10 +38,13 @@ enum cmd_no{
     connect,
     send,
     listen,
+    close,
+    help,
+    reinit,
     reset
 };
 
 uint8_t get_command( uint8_t *cmd );
-
+void software_reset( void );
 
 #endif

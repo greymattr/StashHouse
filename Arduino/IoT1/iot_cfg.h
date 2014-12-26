@@ -30,13 +30,16 @@ Copyright (c) 2014 Matthew Fatheree
 #define MIN(a,b)  ((a) < (b) ? (a) : (b))
 #define MAX(a,b)  ((a) > (b) ? (a) : (b))
 
+#define SET_BIT(p,n)      ((p) |= (1 << (n)))
+#define CLR_BIT(p,n)      ((p) &= (~(1) << (n)))
+#define IS_BIT_SET(val, bit_no) (((val) >> (bit_no)) & 1)
+
 #define BZERO(x, y)    memset(x, 0, y)
 
-#define MAX_NAME_LEN  16
-#define MAX_STR_LEN   (MAX_NAME_LEN*2)
-#define MAC_ADDR_LEN  6
-#define IP_ADDR_LEN   4
-
+#define MAX_NAME_LEN      16
+#define MAX_STR_LEN       (MAX_NAME_LEN*2)
+#define MAC_ADDR_LEN      6
+#define IP_ADDR_LEN       4
 
 #define IOT_VERSION       1
 
@@ -71,23 +74,26 @@ Copyright (c) 2014 Matthew Fatheree
 #define SHORT_DELAY       10
 
 /* default config */
-#define CFG_DEFAULT_NAME  "dumbDev"
+#define CFG_DEFAULT_NAME  "DevName"
 
+#define GPIO_HIGH  1
+#define GPIO_LOW   2
+#define GPIO_MODE_INPUT   1
+#define GPIO_MODE_OUTPUT  2
 
 /********************************************************************************
- * [0-1]      Version
+ * 
  * 
  ********************************************************************************/
 
-struct gpio_cfg{
-	uint16_t   IO_flags;
-	uint16_t   HL_flags;
-	uint16_t   timer1;
-	uint16_t   timer2;
-	uint16_t   IO_mask;
-	uint16_t   HL_mask;
-	uint16_t   delay1;
-	uint16_t   delay2;
+
+
+struct gpio_cfg {
+  uint8_t pin_no;   /*  the gpio pin number     */
+  uint8_t active;   /*  active HIGH or LOW      */
+  uint8_t mode;     /*  mode INPUT or OUTPUT    */
+  uint8_t state;    /*  the current pin state   */
+  uint16_t timer;   /*  a timer                 */
 };
 
 struct net_auth{
@@ -100,6 +106,7 @@ struct net_auth{
 struct net_cfg{
 	uint8_t eth_addr[ MAC_ADDR_LEN ];
 	uint8_t ip_addr[ IP_ADDR_LEN ];
+  uint8_t gateway[ IP_ADDR_LEN ];
 	uint8_t netmask;
 	uint8_t mode;
 	uint16_t port;
@@ -136,15 +143,8 @@ struct d_state{
 int16_t init_cfg( struct d_cfg *d, uint8_t flag  );
 int16_t load_cfg( struct d_cfg *d );
 int16_t save_cfg( struct d_cfg *d );
-
-int16_t set_device_id( uint16_t id );
-uint16_t get_device_id( void );
-
-int8_t set_device_type( uint8_t type );
-uint8_t get_device_type( void );
-int8_t set_device_name( uint8_t *name, uint8_t name_len );
-uint8_t *get_device_name( void );
-
+uint8_t bits_to_netmask( uint8_t bits, uint8_t *netmask);
+uint8_t netmask_to_bits( uint8_t *netmask );
 
 uint8_t CRC8_2(uint8_t *data, uint8_t len);
 uint8_t CRC8(uint8_t *message, uint8_t length);

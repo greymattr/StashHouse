@@ -45,21 +45,17 @@ uint8_t default_type = IOT_TYPE_MASTER;
 int16_t init_cfg( struct d_cfg *d, uint8_t flag )
 {
   BZERO(d, sizeof(struct d_cfg));
-  //  BZERO(&nCfg, sizeof(nCfg));
-  //  BZERO(authCfg, sizeof(authCfg));
-  if( flag == CFG_RESET_FLAG ) {
-    d->ver = CFG_VERSION;
-    d->id  = default_id;
-    d->type = default_type;
-    set_device_name((uint8_t *) CFG_DEFAULT_NAME, 7);
 
-    memcpy(d->netcfg.ip_addr, default_ip_addr, sizeof(default_ip_addr));
-    memcpy(d->netcfg.eth_addr, default_mac_addr, sizeof(default_mac_addr)); 
-    d->netcfg.netmask = default_netmask;
-    d->netcfg.port = default_port;
+  d->ver = CFG_VERSION;
+  d->id = default_id;
+  d->type = default_type;
+  memcpy(d->name, CFG_DEFAULT_NAME, 7);
+  memcpy(d->netcfg.ip_addr, default_ip_addr, sizeof(default_ip_addr));
+  memcpy(d->netcfg.eth_addr, default_mac_addr, sizeof(default_mac_addr)); 
+  d->netcfg.netmask = default_netmask;
+  d->netcfg.port = default_port;
 
-    d->dcrc = CRC8((uint8_t *) d, ( CFG_SIZE - sizeof(uint8_t)));
-  }
+  d->dcrc = CRC8((uint8_t *) d, ( CFG_SIZE - sizeof(uint8_t)));
   cfg_inited = 1;
   return CFG_ERR_OK;
 }
@@ -100,44 +96,52 @@ int16_t save_cfg( struct d_cfg *d )
   return CFG_ERR_OK;
 }
 
-int16_t set_device_id( uint16_t id )
+uint8_t bits_to_netmask( uint8_t bits, uint8_t *netmask)
 {
-  dCfg.id = id;
-  return dCfg.id;
-}
-
-uint16_t get_device_id( void )
-{
-  return dCfg.id;
-}
-
-int8_t set_device_type( uint8_t type )
-{
-  dCfg.type = type;
-  return dCfg.type;
-}
-
-uint8_t get_device_type( void )
-{
-  return dCfg.type;
-}
-
-int8_t set_device_name( uint8_t *name, uint8_t name_len )
-{
-  if( name_len <= sizeof(dCfg.name)){
-    BZERO(dCfg.name, sizeof(dCfg.name));
-    memcpy(dCfg.name, name, name_len);
-  } 
-  else {
-    return CFG_ERR_UNKNOWN;
+  uint8_t i = 0;
+  uint8_t x = 0;
+  
+  memset( netmask, 255, IP_ADDR_LEN);
+  for(i=1;i<=bits;i++){
+    if((i % 8 ) == 0 )x=0;
+    x++;
+    if(i < 9) CLR_BIT(netmask[3], x);
+    else if(i < 17) CLR_BIT(netmask[2], x);
+    else if(i < 25) CLR_BIT(netmask[1], x);
+    else if(i < 33) CLR_BIT(netmask[0], x);
   }
-  return CFG_ERR_OK;
+  return bits;
 }
 
-uint8_t *get_device_name( void )
+uint8_t netmask_to_bits( uint8_t *netmask )
 {
-  return dCfg.name;
+  uint8_t bits = 0;
+  uint8_t i;
+  uint8_t x = 0;
+
+  for(i=1;i<=32;i++){
+    if((i % 8 ) == 0 )x=0;
+    x++;
+    if( i < 9 ) {
+      if(IS_BIT_SET(netmask[3], x))break;
+      else bits++;
+    }
+    else if ( i < 17) {
+      if(IS_BIT_SET(netmask[2], x))break;
+      else bits++;
+    }
+    else if ( i < 25) {
+      if(IS_BIT_SET(netmask[1], x))break;
+      else bits++;
+    }
+    else {
+      if(IS_BIT_SET(netmask[0], x))break;
+      else bits++;
+    }
+  }
+  return bits;
 }
+
 
 /*
 CRC-8 - based on the CRC8 formulas by Dallas/Maxim
