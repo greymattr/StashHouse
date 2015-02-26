@@ -1,0 +1,132 @@
+Dual Blinky README
+
+About: 
+	dual_blinky.ino is an arduino program for controlling 2 RGB leds connected to 
+  an arduino Uno, or Nano board.  Written by Matthew Fatheree for Belkin/Linksys
+
+Hardware Configuration:
+	led #1 red pin   connected to Digital pin 3
+	led #1 green pin connected to Digital pin 5
+	led #1 blue pin  connected to Digital pin 6
+	led #2 red pin   connected to Digital pin 9
+	led #2 green pin connected to Digital pin 10
+	led #2 blue pin  connected to Digital pin 11
+	USB to serial port set at 57600 8N1 for comminucation
+	
+	
+Use:
+	Open a terminal emulator such as putty or hyperterminal on the serial port 
+	that is created when you attach the arduino unit.  The serial port settings 
+	should be baud 57600 8 data bit, no parity, and 1 stop bit ( 57600 8N1 )
+	
+	use commands in the format below to control the behavior of the LED's
+	LED Macro commands:
+		Macro format:     (p)l#,<mode>(args);
+		
+		p  - program flag ( optional )
+		l# - led no 1 or 2
+		modes:
+			b    = blink                              | sr = start red value   (0-255)
+			args = sr,sb,sg,er,eg,eb,freq,repeat      | sg = start green value (0-255)
+			                                          | sb = start blue value  (0-255)
+			t    = transition                         | er = end red value     (0-255)
+			args = sr,sb,sg,er,eg,eb,freq,repeat      | eg = end green value   (0-255)
+			                                          | eb = end blue value    (0-255)
+			+    = on color                           | freq = frequency      (0-9999)
+			args = r,g,b                              | repeat = repeat        (0-255)
+			
+			x    = led off
+			( no arguments )
+	( see examples below )
+			
+	Special commands:
+		reset    = reset programs to start state
+		XXX      = clear saved configurations ( leaves running configurations )
+		save     = save current programs to eeprom ( use with caution )
+		sync     = sync the LED timers
+		show     = show the running macros
+
+Macro Command Examples:
+
+Macro                           |   Explainnation
+================================|===============================================
+l1,+255,255,255;                |	LED 1 to RGB value 255,255,255
+l1,+255,0,0;                    | LED 1 to red value 255, green 0, blue 0
+l1,x;                           | LED 1 off
+l2,b0,0,0,255,255,255,2000,5;   | LED 2 blink off/on every 2 seconds 5 times
+l1,b0,0,0,0,0,255,1000,3;       | LED 1 blink off/blue every 1 second 3 times
+l2,b255,0,0,0,255,0,3000,10;    | LED 2 blink red/green every 3 seconds 10 times
+l1,t0,0,0,255,255,255,4000,0;   | LED 1 transition off/on over 4 seconds forever
+l2,t255,255,255,0,0,0,2000,3;   | LED 2 transition on/off over 2 seconds 3 times
+
+Saving Macro Programs:
+	Any macro command may be prefixed with 'p' to write that LED program to EEPROM
+	so it will be loaded after reboot.  
+	For example, entering the command:
+	pl1,b0,0,0,255,255,255,2000,5;
+
+	will program LED1 to blink off/on every 2 seconds 5 times.  If you reboot the 
+	unit, the LED should run that program after reboot.
+	
+	You can also save both programs by using the 'save' command
+	
+	You can erase saved programs using the 'XXX' command
+	
+	               !!!WARNING!!!
+	the EEPROM has a maximum number of writes, and once it wears out, 
+	saving, and loading the programs over boot will fail.  Please try to use the 
+	save and erase features wisely.  	
+	
+Timing Notes:
+  You may want to blink both LEDs at the same time and same frequency, but 
+  entering the macros for each LED individually makes that difficult.  To 
+  syncronize the timers on the LEDs use the sync command after programming the
+  Macros.
+  For Example, the commands:
+  
+  l1,b0,0,0,255,255,255,2000,5;
+  l2,b0,0,0,255,255,255,2000,5;
+  sync;
+  reset;
+  
+  should blink both LEDs together.
+  
+  for more help use the 'help' command or email Matthew.Fatheree@belkin.command
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
