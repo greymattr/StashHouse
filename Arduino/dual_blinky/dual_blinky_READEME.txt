@@ -91,7 +91,7 @@ Timing Notes:
   
   should blink both LEDs together.
   
-  for more help use the 'help' command or email Matthew.Fatheree@belkin.command
+  for more help use the 'help' command 
 
 
 
