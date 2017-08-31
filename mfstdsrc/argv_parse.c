@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 
-
+/* basic C command line parameter parsing code */
 int main( int argc, char *argv[])
 {
 
@@ -52,4 +52,3 @@ int main( int argc, char *argv[])
 
 return 0;
 }
-

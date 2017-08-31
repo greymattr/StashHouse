@@ -4,12 +4,17 @@
 #include <errno.h>
 #include <fcntl.h>
 
-
 #define BUF_SIZE 1024
 #define PKT_SIZE ( BUF_SIZE * 4 )
 
-
-
+/**
+ * [find_and_replace_text - finds and replaces a block of text in a given buffer ]
+ * @param  sbuf   [ source buffer ]
+ * @param  buflen [ length of source buffer ]
+ * @param  from   [ text that will be replaced ]
+ * @param  to     [ text that be used for the replacement ]
+ * @return        [ 0 ] TODO: add return erros codes
+ */
 int find_and_replace_text( char *sbuf, int buflen, char *from, char *to )
 {
 	char *buf1;
@@ -18,14 +23,13 @@ int find_and_replace_text( char *sbuf, int buflen, char *from, char *to )
 	int offs = 0;
 	int roffs = 0;
 	int len = 0;
-	
+
 	startbuf = sbuf;
-	
 	buf1 = malloc( sizeof(char) * buflen );
 	if( buf1 == NULL)return -1;
-	
+
 	memset(buf1, 0, buflen);
-	
+
 	cstart = strstr(startbuf, from);
 	while( cstart != NULL ) {
 		len = cstart - startbuf;

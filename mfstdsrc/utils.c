@@ -1,6 +1,6 @@
 /**************************************************************
  *
- * MFUTILS.C : mfutils.c - standard code utilites I use while 
+ * MFUTILS.C : mfutils.c - standard code utilites I use while
  *             programming
  *
  *
@@ -11,11 +11,11 @@
  * DATE                 .Comment                       .AUTHOR
  * ============================================================
  *
- * 12-04-2005           Initial revison  -           M.Fatheree   
- *                  added read_word, 
+ * 12-04-2005           Initial revison  -           M.Fatheree
+ *                  added read_word,
  **************************************************************/
- 
-#include "mfutils.h" 
+
+#include "mfutils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,51 +28,54 @@
 #include <stdbool.h>
 #include <ctype.h>
 
- 
-int read_word(int fd, char *buf, int maxlen)
+
+int read_word( int fd, char *buf, int maxlen )
 {
-    int i=0;
-    int ok=1;
-    int rd;
-    char ch;
-    int end = 0;
-    
-    while( ok ){
-        rd = read(fd, &ch, 1);
-        if( rd > 0 ){
-            switch( ch ){
-                case ' ':
-                case 0x0d:
-                case 0x0a:
-                    if( i > 0){
-                        ok = 0;
-                        buf[i] = 0;
-                    }
-                break;
-                default:
-                    buf[i] = ch;
-                    i++;
-                }
+  int i=0;
+  int ok=1;
+  int rd;
+  char ch;
+  int end = 0;
+
+  while( ok ) {
+    rd = read( fd, &ch, 1 );
+    if( rd > 0 ) {
+      switch( ch ) {
+      case ' ':
+      case 0x0d:
+      case 0x0a:
+        if( i > 0 ) {
+          ok = 0;
+          buf[i] = 0;
         }
-        else{
-            ok = 0;
-        }
+        break;
+      default:
+        buf[i] = ch;
+        i++;
+      }
+    } else {
+      ok = 0;
     }
-    return i;
+  }
+  return i;
 }
 
 /* verifys a mac address array */
-int verify_addr(char *s) {
-	int i;
-	for(i = 0; i < 17; i++) {
-		if(i % 3 != 2 && !isxdigit(s[i]))
-			return 0;
-		if(i % 3 == 2 && s[i] != ':')
-			return 0;
-	}
-	if(s[17] != '\0')
-		return 0;
-	return 1;
+int verify_addr( char *s )
+{
+  int i;
+  for( i = 0; i < 17; i++ ) {
+    if( i % 3 != 2 && !isxdigit( s[i] ) ) {
+      return 0;
+    }
+    if( i % 3 == 2 && s[i] != ':' ) {
+      return 0;
+    }
+  }
+  if( s[17] != '\0' ) {
+    return 0;
+  }
+  return 1;
 }
 
 /* like fprintf but using a file descriptor */
@@ -119,31 +122,35 @@ int fdreadline( int fd, char *buf, int len )
  */
 int fdreadline_t( int fd, char *buf, int len, int maxtime )
 {
-	fd_set set;
+  fd_set set;
   struct timeval timeout;
   int rv;
-	int ok = 0;
-	int rlen = 0;
+  int ok = 0;
+  int rlen = 0;
 
-	while(1) {
-		FD_ZERO(&set); 
-		FD_SET(fd, &set); 
+  while( 1 ) {
+    FD_ZERO( &set );
+    FD_SET( fd, &set );
 
-		timeout.tv_sec = maxtime;
-		timeout.tv_usec = 0;
+    timeout.tv_sec = maxtime;
+    timeout.tv_usec = 0;
 
-		rv = select(fd + 1, &set, NULL, NULL, &timeout);
-		if(rv == -1) {
-			return rv;
-		} else if ( rv == 0 ) {
-			break;
-		} else {
-			ok = read( fd, buf+rlen, len-rlen );
-			if( ok > 0 )rlen += ok;
-			if( rlen == len )break;
-		}	
-	}
-	return rlen;
+    rv = select( fd + 1, &set, NULL, NULL, &timeout );
+    if( rv == -1 ) {
+      return rv;
+    } else if ( rv == 0 ) {
+      break;
+    } else {
+      ok = read( fd, buf+rlen, len-rlen );
+      if( ok > 0 ) {
+        rlen += ok;
+      }
+      if( rlen == len ) {
+        break;
+      }
+    }
+  }
+  return rlen;
 }
 
 /* search_string - searches for string key, in buf
@@ -153,7 +160,7 @@ int fdreadline_t( int fd, char *buf, int len, int maxtime )
  */
 int search_string( char *key, char *buf )
 {
-	int ok = -1;
+  int ok = -1;
   char *tmp;
   if( ( tmp = strstr( buf, key ) ) != NULL ) {
     ok = ( tmp - buf );
@@ -229,11 +236,8 @@ int fdopenexec( char *executable )
     /* this is the child process, attached to a psuedo tty,
      * running the exernal executable, which should allow low-level
      * read/write calls - YEA LINUX! ( fread and fwrite are for newbs )
-		 */
+     */
     ok = dup( master );
   }
   return ok;
 }
-
- 
- 

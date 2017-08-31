@@ -1,23 +1,23 @@
 /*****************************************************************************
 *
-*  filename: mfsckstd.h  
-*  desc    : header file for Matthew Fatheree std Socket programming.     
-*  
+*  filename: mfsckstd.h
+*  desc    : header file for Matthew Fatheree std Socket programming.
+*
 *  Revison History:
 * -----------------------------------------------------------------------------
 * 04-26-2005    -    Adapted mfsckstd.h from mfstd.h              M.Fatheree
-* 
 *
 *
 *
-* (c) copyright 2005 Matthew Fatheree 
+*
+* (c) copyright 2005 Matthew Fatheree
 *******************************************************************************/
 
 
 #ifndef	__MFSTD_H__
 #define	__MFSTD_H__
 
-#include    <ctype.h>       /* for 'isalpha()' */
+#include  <ctype.h>       /* for 'isalpha()' */
 
 #include	<sys/types.h>	/* basic system data types */
 #include	<sys/socket.h>	/* basic socket definitions */
@@ -36,30 +36,30 @@
 #include	<unistd.h>
 #include	<sys/wait.h>
 #include	<sys/un.h>		/* for Unix domain sockets */
-#include    <stdarg.h>
+#include  <stdarg.h>
 #ifdef	HAVE_SYS_SELECT_H
-# include	<sys/select.h>	/* for convenience */
+#include	<sys/select.h>	/* for convenience */
 #endif
 
 #ifdef	HAVE_POLL_H
-# include	<poll.h>		/* for convenience */
+#include	<poll.h>		/* for convenience */
 #endif
 
 #ifdef	HAVE_STRINGS_H
-# include	<strings.h>		/* for convenience */
+#include	<strings.h>		/* for convenience */
 #endif
 
 /* Three headers are normally needed for socket/file ioctl's:
  * <sys/ioctl.h>, <sys/filio.h>, and <sys/sockio.h>.
  */
 #ifdef	HAVE_SYS_IOCTL_H
-# include	<sys/ioctl.h>
+#include	<sys/ioctl.h>
 #endif
 #ifdef	HAVE_SYS_FILIO_H
-# include	<sys/filio.h>
+#include	<sys/filio.h>
 #endif
 #ifdef	HAVE_SYS_SOCKIO_H
-# include	<sys/sockio.h>
+#include	<sys/sockio.h>
 #endif
 
 /* OSF/1 actually disables recv() and send() in <sys/socket.h> */
@@ -93,7 +93,6 @@
 				   "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:ddd.ddd.ddd.ddd\0"
 				    1234567890123456789012345678901234567890123456 */
 #endif
-/* *INDENT-ON* */
 
 /* Define bzero() as a macro if it's not in standard C library. */
 #ifndef	HAVE_BZERO
@@ -127,12 +126,11 @@
 #ifndef HOSTENT
 #define HOSTENT struct hostent
 #endif
-		
+
 #define	min(a,b)	((a) < (b) ? (a) : (b))
 #define	max(a,b)	((a) > (b) ? (a) : (b))
 
 #define MFDEBUG         /* to make API verbose */
-
 
 extern int tcp_send_file(char *filed, char *ipaddr, int port);
 extern int udp_send_file(char *fname, char *ipaddr, int portto, int portfrom);
