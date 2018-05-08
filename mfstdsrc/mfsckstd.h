@@ -132,6 +132,7 @@
 
 #define MFDEBUG         /* to make API verbose */
 
+extern int is_ip_address(const char *ip);
 extern int tcp_send_file(char *filed, char *ipaddr, int port);
 extern int udp_send_file(char *fname, char *ipaddr, int portto, int portfrom);
 extern int fdprintf(int fd, const char *fmt, ...);

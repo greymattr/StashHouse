@@ -19,6 +19,18 @@ static unsigned long crc_table[256];
 static int inited=0;
 #endif
 
+int is_ip_address(const char *ip)
+{
+	struct sockaddr_in sa;
+	int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+	if( result == 1 ) {
+		return result;
+	} else {
+		return 0;
+	}
+}
+
+
 /**
  * [init_tcp - open a tcp socket file descriptor ]
  * @param  tcp_port [ the tcp port number ]
