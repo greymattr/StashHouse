@@ -69,8 +69,7 @@ typedef int SOCKET;
 #endif
 
 
-struct client_t
-{
+struct client_t {
   int inuse;
   SOCKET csock, osock;
   time_t activity;
@@ -99,8 +98,7 @@ int main( int argc, char *argv[] )
     return 30;
   }
   /* reset all of the client structures */
-  for ( i = 0; i < MAXCLIENTS; i++ )
-  {
+  for ( i = 0; i < MAXCLIENTS; i++ ) {
     clients[i].inuse = 0;
   }
   /* determine the listener address and port */
@@ -159,15 +157,13 @@ int main( int argc, char *argv[] )
     perror( "fork" );
     return 20;
   }
-  if ( i > 0 )
-  {
+  if ( i > 0 ) {
     return 0;
   }
   setsid();
 #endif
   /* main polling loop. */
-  while ( 1 )
-  {
+  while ( 1 ) {
     fd_set fdsr;
     int maxsock;
     struct timeval tv = {1,0};
@@ -179,13 +175,11 @@ int main( int argc, char *argv[] )
     for ( i = 0; i < MAXCLIENTS; i++ )
       if ( clients[i].inuse ) {
         FD_SET( clients[i].csock, &fdsr );
-        if ( ( int ) clients[i].csock > maxsock )
-        {
+        if ( ( int ) clients[i].csock > maxsock ) {
           maxsock = ( int ) clients[i].csock;
         }
         FD_SET( clients[i].osock, &fdsr );
-        if ( ( int ) clients[i].osock > maxsock )
-        {
+        if ( ( int ) clients[i].osock > maxsock ) {
           maxsock = ( int ) clients[i].osock;
         }
       }
@@ -193,32 +187,27 @@ int main( int argc, char *argv[] )
       return 30;
     }
     /* check if there are new connections to accept. */
-    if ( FD_ISSET( lsock, &fdsr ) )
-    {
+    if ( FD_ISSET( lsock, &fdsr ) ) {
       SOCKET csock = accept( lsock, NULL, 0 );
       for ( i = 0; i < MAXCLIENTS; i++ )
         if ( !clients[i].inuse ) {
           break;
         }
-      if ( i < MAXCLIENTS )
-      {
+      if ( i < MAXCLIENTS ) {
         /* connect a socket to the outgoing host/port */
         SOCKET osock;
         if ( ( osock = socket( AF_INET, SOCK_STREAM, 0 ) ) == -1 ) {
           perror( "socket" );
           closesocket( csock );
-        }
-        else if ( bind( osock, ( struct sockaddr * )&laddr, sizeof( laddr ) ) ) {
+        } else if ( bind( osock, ( struct sockaddr * )&laddr, sizeof( laddr ) ) ) {
           perror( "bind" );
           closesocket( csock );
           closesocket( osock );
-        }
-        else if ( connect( osock, ( struct sockaddr * )&oaddr, sizeof( oaddr ) ) ) {
+        } else if ( connect( osock, ( struct sockaddr * )&oaddr, sizeof( oaddr ) ) ) {
           perror( "connect" );
           closesocket( csock );
           closesocket( osock );
-        }
-        else {
+        } else {
           clients[i].osock = osock;
           clients[i].csock = csock;
           clients[i].activity = now;
@@ -230,8 +219,7 @@ int main( int argc, char *argv[] )
       }
     }
     /* service any client connections that have waiting data. */
-    for ( i = 0; i < MAXCLIENTS; i++ )
-    {
+    for ( i = 0; i < MAXCLIENTS; i++ ) {
       int nbyt, closeneeded = 0;
       if ( !clients[i].inuse ) {
         continue;
@@ -239,16 +227,14 @@ int main( int argc, char *argv[] )
         if ( ( nbyt = recv( clients[i].csock, buf, sizeof( buf ), 0 ) ) <= 0 ||
              send( clients[i].osock, buf, nbyt, 0 ) <= 0 ) {
           closeneeded = 1;
-        }
-        else {
+        } else {
           clients[i].activity = now;
         }
       } else if ( FD_ISSET( clients[i].osock, &fdsr ) ) {
         if ( ( nbyt = recv( clients[i].osock, buf, sizeof( buf ), 0 ) ) <= 0 ||
              send( clients[i].csock, buf, nbyt, 0 ) <= 0 ) {
           closeneeded = 1;
-        }
-        else {
+        } else {
           clients[i].activity = now;
         }
       } else if ( now - clients[i].activity > IDLETIMEOUT ) {
