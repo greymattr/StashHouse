@@ -1,6 +1,48 @@
+/*
+ * The MIT License (MIT)
+ *
+ Copyright (c) 2019 Matthew Fatheree greymattr(at)gmail.com
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ *
+ */
+
 #include "at_parse.h"
 
 static unsigned int kv_count;
+
+/* like fprintf but using a filedescriptor */
+int fdprintf( int fd, const char *fmt, ... )
+{
+	char buf[512];
+	va_list args;
+
+	if ( fd < 0 ) {
+		return -1;
+	}
+
+	va_start( args, fmt );
+	vsprintf( buf, fmt, args );
+	va_end( args );
+
+	return ( write( fd, buf, strlen( buf ) ) );
+}
 
 int ctrl_cfg_init( struct ctrl_cfg *c )
 {
@@ -96,7 +138,7 @@ int read_cmd_line( int fd, char *buf, unsigned int buf_len )
 {
 	unsigned int count = 0;
 	char ch;
-	while( read( fd, &ch, 1 ) > -1 ) {
+	while( read( fd, &ch, 1 ) > 0 ) {
 		if( ch != '\n' ) {
 			buf[count] = ch;
 			count++;
@@ -145,13 +187,13 @@ int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 				//printf("Set Value(s) - %s\n\r", &buf[3]);
 				res = RES_ERROR;
 				key = parse_key( &buf[3] );
-				if( key != NULL ){
+				if( key != NULL ) {
 					//printf("Key = %s\n\r", key);
 					value = parse_value( &val_buf[3] );
 					if( value != NULL ) {
 						//printf("Value = %s\n\r", value);
 						if( ( key != NULL ) && ( value != NULL ) ) {
-							if( add_kv_pair( *l, key, value )) {
+							if( add_kv_pair( *l, key, value ) ) {
 								res = RES_OK;
 							}
 						}
@@ -162,7 +204,7 @@ int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 				//printf("Del Value(s) - %s\n\r", &buf[3]);
 				key = parse_key( &buf[3] );
 				if( key != NULL ) {
-					if( del_kv_pair( l, key )){
+					if( del_kv_pair( l, key ) ) {
 						res = RES_OK;
 					}
 				} else {
@@ -215,7 +257,7 @@ void print_kv_pair_lists( struct kv_pair_list *l )
 		while( l->next != NULL ) {
 			if( l != NULL ) {
 				//printf( "%s = %s ( %d )\n\r", l->kv.key, l->kv.value, (int)l );
-				printf( "%s = %s\n\r", l->kv.key, l->kv.value);
+				printf( "%s=%s\n\r", l->kv.key, l->kv.value );
 			}
 			l = l->next;
 		}
@@ -261,8 +303,8 @@ int add_kv_pair( struct kv_pair_list *l, char *key, char *value )
 			kv_count++;
 			return 1;
 		}
-	} 
-	return 0;
+	}
+	return done;
 }
 
 int del_kv_pair( struct kv_pair_list **l, char *key )
@@ -271,19 +313,19 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 	int done = 1;
 	prev = *l;
 	temp = prev->next;
-	
-	if ( prev != NULL && 
-		 ( strlen( key ) == strlen( prev->kv.key ) ) && 
-		 ( strncmp( prev->kv.key, key, strlen( key ) ) == 0 ) ){
+
+	if ( prev != NULL &&
+	     ( strlen( key ) == strlen( prev->kv.key ) ) &&
+	     ( strncmp( prev->kv.key, key, strlen( key ) ) == 0 ) ) {
 		*l = temp;
 		free( prev->kv.key );
 		free( prev->kv.value );
 		free( prev );
 		return 1;
 	}
-	while( temp != NULL ){
+	while( temp != NULL ) {
 		if ( strncmp( temp->kv.key, key, strlen( key ) ) == 0 &&
-			( strlen( key ) == strlen( temp->kv.key ) ) ) {
+		     ( strlen( key ) == strlen( temp->kv.key ) ) ) {
 			break;
 		}
 		prev = temp;
@@ -294,7 +336,7 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 		return 0;
 	}
 	prev->next = temp->next;
-	free( temp->kv.key);
+	free( temp->kv.key );
 	free( temp->kv.value );
 	free( temp );
 	return done;
@@ -354,23 +396,86 @@ char *parse_value( char *str )
 	return value;
 }
 
-int parse_config_file( char *cfg, int mode )
+int write_config_file( struct kv_pair_list *l, char *cfg, int mode )
 {
 	int ok = 0;
+	int fd;
+	if( mode == CFG_MODE_INIT ) {
+		printf( "erasing current config %s\n\r", cfg );
+		fd = open( cfg, O_RDWR | O_CREAT | O_TRUNC, 0667 );
+	}
+	if ( mode == CFG_MODE_ADD ) {
+		printf( "appending current config %s\n\r", cfg );
+		fd = open( cfg, O_RDWR | O_APPEND, 0667 );
+	}
+	if( fd > 0 ) {
+		if ( kv_count > 0 ) {
+			while( l->next != NULL ) {
+				if( l != NULL ) {
+					//printf( "%s = %s ( %d )\n\r", l->kv.key, l->kv.value, (int)l );
+					ok = fdprintf( fd, "%s=%s\n\r", l->kv.key, l->kv.value );
+					if( ok < 0 ) {
+						printf( "error writing config file %s (%d)\n\r", cfg, ok );
+						close( fd );
+						return ok;
+					}
+				}
+				l = l->next;
+			}
+		}
+		close( fd );
+	} else {
+		printf( "error opening config file %s (%d)\n\r", cfg, fd );
+		return fd;
+	}
+	return ok;
+}
+
+int parse_config_file( struct kv_pair_list *l, char *cfg, int mode )
+{
+	int ok = 0;
+	char buf[ 512 ], buf2[512];
+	char *key;
+	char *value;
 	int fd = open( cfg, O_RDONLY );
 
 	if( mode == CFG_MODE_INIT ) {
-		printf( "erasing current config\n\r" );
+		printf( "erasing current config %s\n\r", cfg );
+		close( fd );
+		fd = open( cfg, O_RDONLY | O_TRUNC );
 	}
-
 	if( fd < 0 ) {
+		printf( "error reading config file %s\n\r", cfg );
 		ok = -1;
 	} else {
-		printf( "reading config file\n\r" );
-
+		printf( "reading config file %s\n\r", cfg );
+		memset( buf, 0, sizeof( buf ) );
+		memset( buf2, 0, sizeof( buf2 ) );
+		while( ( ok = read_cmd_line( fd, buf, sizeof( buf ) ) ) > 0 ) {
+			if( ( buf[0] != '\n' ) &&
+			    ( buf[0] != '\r' ) &&
+			    ( buf[0] != '#' ) &&
+			    ( strlen( buf ) > 2 ) ) {
+				memcpy( buf2, buf, ok );
+				//printf("read %d bytes [ %s ]\n\r", ok, buf);
+				key = parse_key( buf );
+				//printf("key [ %s ]\n\r", key);
+				value = parse_value( buf2 );
+				//printf("value [ %s ]\n\r", value);
+				if( ( key != NULL ) && ( value != NULL ) ) {
+					//printf("key[ %s ] = value[ %s ]\n\r", key, value);
+					if( ! add_kv_pair( l, key, value ) ) {
+						printf( "error adding key value pair [ %s = %s ]\n\r", key, value );
+					}
+				} else {
+					//printf("error getting key value pair [ %s ]\n\r", buf);
+				}
+				memset( buf, 0, sizeof( buf ) );
+				memset( buf2, 0, sizeof( buf2 ) );
+			}
+		}
 		close( fd );
 	}
-
 	return ok;
 }
 

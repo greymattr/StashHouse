@@ -1,3 +1,28 @@
+/*
+ * The MIT License (MIT)
+ *
+ Copyright (c) 2019 Matthew Fatheree greymattr(at)gmail.com
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ *
+ */
+
 #ifndef __AT_PARSE_H__
 #define __AT_PARSE_H__
 
@@ -5,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> // for read();
+#include <stdarg.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -84,9 +110,8 @@ struct lat_cmd {
 	void ( *callback )();
 };
 
-//extern struct kv_pair_list *llist;
-//extern ctrl_cfg *CFG;
 
+int fdprintf( int fd, const char *fmt, ... );
 int ctrl_cfg_init( struct ctrl_cfg *c );
 void print_english_result( int res );
 void print_result( struct ctrl_cfg *c, int res );
@@ -102,7 +127,8 @@ void del_all_kv_pairs( struct kv_pair_list **l );
 char *find_key_value( struct kv_pair_list *l, char *key );
 char *parse_key( char *str );
 char *parse_value( char *str );
-int parse_config_file( char *cfg, int mode );
+int write_config_file( struct kv_pair_list *l, char *cfg, int mode );
+int parse_config_file( struct kv_pair_list *l, char *cfg, int mode );
 int tokpos( char *str, int len, char tok );
 //int process_cmd_buf( char *cmdbuf, int len );
 int process_cmd_buf( char *cmdbuf, int cmdlen, struct lat_cmd *c );
