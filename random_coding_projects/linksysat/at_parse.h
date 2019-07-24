@@ -90,6 +90,7 @@ struct ctrl_cfg {
 	unsigned char esc_char;			// esc character value
 	unsigned char backsp_char;  // back space character value
 	unsigned char eol_custom[4];// custom EOL string
+	int iofd;
 };
 
 //extern unsigned int kv_count;
@@ -113,12 +114,12 @@ struct lat_cmd {
 
 int fdprintf( int fd, const char *fmt, ... );
 int ctrl_cfg_init( struct ctrl_cfg *c );
-void print_english_result( int res );
+void print_english_result( struct ctrl_cfg *c, int res );
 void print_result( struct ctrl_cfg *c, int res );
 int read_cmd_line( int fd, char *buf, unsigned int buf_len );
 int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l , char *buf );
 struct kv_pair_list *init_items( void );
-void print_kv_pair_lists( struct kv_pair_list *l );
+void print_kv_pair_lists( struct ctrl_cfg *c, struct kv_pair_list *l );
 int kv_pair_lists_count( void );
 int add_kv_pair( struct kv_pair_list *l, char *key, char *value );
 //int del_kv_pair( struct kv_pair_list **l, char *key );
@@ -127,8 +128,8 @@ void del_all_kv_pairs( struct kv_pair_list **l );
 char *find_key_value( struct kv_pair_list *l, char *key );
 char *parse_key( char *str );
 char *parse_value( char *str );
-int write_config_file( struct kv_pair_list *l, char *cfg, int mode );
-int parse_config_file( struct kv_pair_list *l, char *cfg, int mode );
+int write_kv_file( struct kv_pair_list *l, char *cfg, int mode );
+int parse_kv_file( struct kv_pair_list *l, char *cfg, int mode );
 int tokpos( char *str, int len, char tok );
 //int process_cmd_buf( char *cmdbuf, int len );
 int process_cmd_buf( char *cmdbuf, int cmdlen, struct lat_cmd *c );

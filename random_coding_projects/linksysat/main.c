@@ -32,7 +32,7 @@
 struct ctrl_cfg CFG;									// global control configuration
 static struct kv_pair_list *llist;		// global key value pair list
 static int loop = 0;									// global loop var for main
-static int fd = STDIN_FILENO;					// cmd processing file descriptor
+//static int fd = STDIN_FILENO;					// cmd processing file descriptor
 
 // call back function prototypes for lat_cmd table callbacks
 void dump_av_pairs( void );
@@ -74,10 +74,10 @@ int main( void )
 
 //	printf("added default config items\n\r");
 
-	parse_config_file( llist, "test.cfg", CFG_MODE_ADD );
+	parse_kv_file( llist, "test.cfg", CFG_MODE_ADD );
 
 	while( loop == 0 ) {
-		ok = read_cmd_line( fd, buf, sizeof( buf ) );
+		ok = read_cmd_line( CFG.iofd, buf, sizeof( buf ) );
 		// process_cmd_buf will handle command in cmd_table with callback functions
 		if ( ! process_cmd_buf( buf, ok, cmd_table ) ) {
 			if ( ok ) {
@@ -97,7 +97,7 @@ int main( void )
 
 void dump_av_pairs( void )
 {
-	print_kv_pair_lists( llist );
+	print_kv_pair_lists( &CFG, llist );
 	return;
 }
 
@@ -125,6 +125,6 @@ void print_help( void )
 
 void update_cfg ( void )
 {
-	write_config_file( llist, "linksysat.cfg", CFG_MODE_INIT );
+	write_kv_file( llist, "linksysat.cfg", CFG_MODE_INIT );
 	return;
 }

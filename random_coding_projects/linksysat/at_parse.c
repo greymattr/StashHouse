@@ -55,35 +55,37 @@ int ctrl_cfg_init( struct ctrl_cfg *c )
 	c->cr_char = 0x0d;
 	c->esc_char = 0x1b;
 	c->backsp_char = 0x08;
+	c->iofd = STDIN_FILENO;
 	return 0;
 }
 
-void print_english_result( int res )
+void print_english_result( struct ctrl_cfg *c, int res )
 {
 	switch( res ) {
 	case RES_OK:
-		printf( "OK" );
+		//printf( "OK" );
+		fdprintf( c->iofd, "OK" );
 		break;
 	case RES_CONNECT:
-		printf( "CONNECT" );
+		fdprintf( c->iofd, "CONNECT" );
 		break;
 	case RES_RING:
-		printf( "RING" );
+		fdprintf( c->iofd, "RING" );
 		break;
 	case RES_NO_CARRIER:
-		printf( "NO CARRIER" );
+		fdprintf( c->iofd, "NO CARRIER" );
 		break;
 	case RES_ERROR:
-		printf( "ERROR" );
+		fdprintf( c->iofd, "ERROR" );
 		break;
 	case RES_NO_DIALTONE:
-		printf( "NO DAILTONE" );
+		fdprintf( c->iofd, "NO DAILTONE" );
 		break;
 	case RES_BUSY:
-		printf( "BUSY" );
+		fdprintf( c->iofd, "BUSY" );
 		break;
 	case RES_NO_ANSWER:
-		printf( "NO ANSWER" );
+		fdprintf( c->iofd, "NO ANSWER" );
 		break;
 	case 5:
 	case 10:
@@ -96,7 +98,7 @@ void print_english_result( int res )
 	case 24:
 	case 25:
 	case 28:
-		printf( "CONNECT" );
+		fdprintf( c->iofd, "CONNECT" );
 		break;
 	}
 	return ;
@@ -105,30 +107,31 @@ void print_english_result( int res )
 void print_result( struct ctrl_cfg *c, int res )
 {
 	if( c->verbose_mode == VERBOSE_NUMERIC ) {
-		printf( "%d", res );
+		//printf( "%d", res );
+		fdprintf( c->iofd, "%d", res ); 
 	} else if ( c->verbose_mode == VERBOSE_ENGLISH ) {
-		print_english_result( res );
+		print_english_result( c, res );
 	}
 	switch( c->eol_code ) {
 	case EOL_NONE:
 		break;
 	case EOL_CR:
-		printf( "%c", c->cr_char );
+		fdprintf( c->iofd, "%c", c->cr_char );
 		break;
 	case EOL_LF:
-		printf( "%c", c->lf_char );
+		fdprintf( c->iofd, "%c", c->lf_char );
 		break;
 	case EOL_CRLF:
-		printf( "%c%c", c->cr_char, c->lf_char );
+		fdprintf( c->iofd, "%c%c", c->cr_char, c->lf_char );
 		break;
 	case EOL_CRNULL:
-		printf( "%c%c", c->cr_char, 0x00 );
+		fdprintf( c->iofd, "%c%c", c->cr_char, 0x00 );
 		break;
 	case EOL_LFNULL:
-		printf( "%c%c", c->lf_char, 0x00 );
+		fdprintf( c->iofd, "%c%c", c->lf_char, 0x00 );
 		break;
 	case EOL_CUSTOM:
-		printf( "%s", c->eol_custom );
+		fdprintf( c->iofd, "%s", c->eol_custom );
 		break;
 	}
 	return;
@@ -178,7 +181,8 @@ int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 					if( key != NULL ) {
 						value = find_key_value( *l, key );
 						if( value != NULL ) {
-							printf( "%s\n\r", value );
+							//printf( "%s\n\r", value );
+							fdprintf(c->iofd, "%s\n\r", value );
 							res = RES_OK;
 						}
 					}
@@ -251,13 +255,14 @@ struct kv_pair_list *init_items( void )
 	return llist;
 }
 
-void print_kv_pair_lists( struct kv_pair_list *l )
+void print_kv_pair_lists( struct ctrl_cfg *c, struct kv_pair_list *l )
 {
 	if ( kv_count > 0 ) {
 		while( l->next != NULL ) {
 			if( l != NULL ) {
 				//printf( "%s = %s ( %d )\n\r", l->kv.key, l->kv.value, (int)l );
-				printf( "%s=%s\n\r", l->kv.key, l->kv.value );
+				//printf( "%s=%s\n\r", l->kv.key, l->kv.value );
+				fdprintf( c->iofd, "%s=%s\n\r", l->kv.key, l->kv.value );
 			}
 			l = l->next;
 		}
@@ -398,16 +403,18 @@ char *parse_value( char *str )
 	return value;
 }
 
-int write_config_file( struct kv_pair_list *l, char *cfg, int mode )
+int write_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 {
 	int ok = 0;
 	int fd;
 	if( mode == CFG_MODE_INIT ) {
-		printf( "erasing current config %s\n\r", cfg );
+		//printf( "erasing current config %s\n\r", cfg );
+		//fdprintf(CFG.iofd, "erasing current config %s\n\r", cfg );
 		fd = open( cfg, O_RDWR | O_CREAT | O_TRUNC, 0667 );
 	}
 	if ( mode == CFG_MODE_ADD ) {
-		printf( "appending current config %s\n\r", cfg );
+		//printf( "appending current config %s\n\r", cfg );
+		//fdprintf(CFG.iofd, "appending current config %s\n\r", cfg );
 		fd = open( cfg, O_RDWR | O_APPEND, 0667 );
 	}
 	if( fd > 0 ) {
@@ -417,7 +424,8 @@ int write_config_file( struct kv_pair_list *l, char *cfg, int mode )
 					//printf( "%s = %s ( %d )\n\r", l->kv.key, l->kv.value, (int)l );
 					ok = fdprintf( fd, "%s=%s\n\r", l->kv.key, l->kv.value );
 					if( ok < 0 ) {
-						printf( "error writing config file %s (%d)\n\r", cfg, ok );
+						//printf( "error writing config file %s (%d)\n\r", cfg, ok );
+						//fdprintf(CFG.iofd, "error writing config file %s (%d)\n\r", cfg, ok );
 						close( fd );
 						return ok;
 					}
@@ -427,13 +435,14 @@ int write_config_file( struct kv_pair_list *l, char *cfg, int mode )
 		}
 		close( fd );
 	} else {
-		printf( "error opening config file %s (%d)\n\r", cfg, fd );
+		//printf( "error opening config file %s (%d)\n\r", cfg, fd );
+		//fdprintf(CFG.iofd, "error opening config file %s (%d)\n\r", cfg, fd );
 		return fd;
 	}
 	return ok;
 }
 
-int parse_config_file( struct kv_pair_list *l, char *cfg, int mode )
+int parse_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 {
 	int ok = 0;
 	char buf[ 512 ], buf2[512];
@@ -442,15 +451,18 @@ int parse_config_file( struct kv_pair_list *l, char *cfg, int mode )
 	int fd = open( cfg, O_RDONLY );
 
 	if( mode == CFG_MODE_INIT ) {
-		printf( "erasing current config %s\n\r", cfg );
+		//printf( "erasing current config %s\n\r", cfg );
+		//fdprintf(CFG.iofd, "erasing current config %s\n\r", cfg );
 		close( fd );
 		fd = open( cfg, O_RDONLY | O_TRUNC );
 	}
 	if( fd < 0 ) {
-		printf( "error reading config file %s\n\r", cfg );
+		//printf( "error reading config file %s\n\r", cfg );
+		//fdprintf(CFG.iofd, "error reading config file %s\n\r", cfg );
 		ok = -1;
 	} else {
-		printf( "reading config file %s\n\r", cfg );
+		//printf( "reading config file %s\n\r", cfg );
+		//fdprintf(CFG.iofd, "reading config file %s\n\r", cfg );
 		memset( buf, 0, sizeof( buf ) );
 		memset( buf2, 0, sizeof( buf2 ) );
 		while( ( ok = read_cmd_line( fd, buf, sizeof( buf ) ) ) > 0 ) {
@@ -467,7 +479,9 @@ int parse_config_file( struct kv_pair_list *l, char *cfg, int mode )
 				if( ( key != NULL ) && ( value != NULL ) ) {
 					//printf("key[ %s ] = value[ %s ]\n\r", key, value);
 					if( ! add_kv_pair( l, key, value ) ) {
-						printf( "error adding key value pair [ %s = %s ]\n\r", key, value );
+						//printf( "error adding key value pair [ %s = %s ]\n\r", key, value );
+						//fdprintf(CFG.iofd, "error adding key value pair [ %s = %s ]\n\r", key, value );
+						ok = -1;
 					}
 				} else {
 					//printf("error getting key value pair [ %s ]\n\r", buf);
