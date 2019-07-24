@@ -321,6 +321,7 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 		free( prev->kv.key );
 		free( prev->kv.value );
 		free( prev );
+		kv_count--;
 		return 1;
 	}
 	while( temp != NULL ) {
@@ -339,6 +340,7 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 	free( temp->kv.key );
 	free( temp->kv.value );
 	free( temp );
+	kv_count--;
 	return done;
 }
 

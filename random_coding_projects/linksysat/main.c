@@ -29,10 +29,10 @@
 #include "at_parse.h"
 
 
-struct ctrl_cfg CFG;					// global control configuration
+struct ctrl_cfg CFG;									// global control configuration
 static struct kv_pair_list *llist;		// global key value pair list
-static int loop = 0;					// global loop var for main
-static int fd = STDIN_FILENO;
+static int loop = 0;									// global loop var for main
+static int fd = STDIN_FILENO;					// cmd processing file descriptor
 
 // call back function prototypes for lat_cmd table callbacks
 void dump_av_pairs( void );
@@ -47,7 +47,7 @@ struct lat_cmd cmd_table[] = {
 	{"AT?", "AT?<Key> get key value", NULL},
 	{"DUMP", "dump av pair list", dump_av_pairs},
 	{"COUNT", "get number of av pairs in list", count_av_pairs },
-	{"CFGUPDATE", "write out the configuration to a file", update_cfg },
+	{"CFGUPDATE", "write out the configuration to a file", update_cfg},
 	{"EXIT", "exit program", exit_program },
 	{"HELP", "print command help", print_help},
 	{NULL, NULL, NULL}
@@ -78,10 +78,10 @@ int main( void )
 
 	while( loop == 0 ) {
 		ok = read_cmd_line( fd, buf, sizeof( buf ) );
-		// process_cmd_buf will handle command in cmd_table
+		// process_cmd_buf will handle command in cmd_table with callback functions
 		if ( ! process_cmd_buf( buf, ok, cmd_table ) ) {
 			if ( ok ) {
-				// parse more complex AT style commands
+				// parse more complex AT style commands, or those in cmd_table without callback functions
 				parse_at_command( &CFG, &llist, buf );
 			}
 		}
