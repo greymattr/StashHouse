@@ -125,6 +125,10 @@ int main( int argc, char *argv[] )
 			print_main_help();
 			return 0;
 			break;
+		default:
+			print_main_help();
+			return -1;
+			break;
 		}
 	}/*  end of while statement  */
 
@@ -154,8 +158,7 @@ int main( int argc, char *argv[] )
 
 	memset( buf, 0, sizeof( buf ) );
 	while( loop == 0 ) {
-		//ok = read_cmd_line( CFG.iofd, buf, sizeof( buf ) );
-		ok = fdreadline_t( CFG.iofd, buf, sizeof(buf), 0);
+		ok = read_cmd_line( CFG.iofd, buf, sizeof( buf ) );
 		if( ok > 0 ){
 			// printf("read %d bytes\n\r[ %s ]\n\r", ok, buf);
 			// process_cmd_buf will handle command in cmd_table with callback functions
@@ -215,7 +218,13 @@ void update_cfg ( void )
 
 void print_main_help( void )
 {
-	printf( "HELP!" );
-	return ;
+	printf( "Usage:" );
+	printf( "./linksysat [options]\n\r");
+	printf( "\t -d <device>\n\r");
+	printf( "\t -b <baud rate>\n\r");
+	printf( "\t -f <key value file>\n\r");
+	printf( "\t -v - make verbose\n\r");
+	printf( "\t -h - this help screen\n\r");
+	return;
 }
 
