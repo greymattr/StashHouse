@@ -29,7 +29,7 @@
 #include "at_parse.h"
 
 
-struct ctrl_cfg CFG;									// global control configuration
+static struct ctrl_cfg CFG;									// global control configuration
 static struct kv_pair_list *llist;		// global key value pair list
 static int loop = 0;									// global loop var for main
 //static int fd = STDIN_FILENO;					// cmd processing file descriptor
@@ -91,7 +91,8 @@ int main( void )
 		del_all_kv_pairs( &llist );
 		free( llist );
 	}
-	printf( "exiting...\n\r" );
+	//printf( "exiting...\n\r" );
+	fdprintf(CFG.iofd, "exiting...\n\r" );
 	return 0;
 }
 
@@ -103,7 +104,7 @@ void dump_av_pairs( void )
 
 void count_av_pairs( void )
 {
-	printf( "%d\n\r", kv_pair_lists_count() );
+	fdprintf(CFG.iofd, "%d\n\r", kv_pair_lists_count() );
 	return;
 }
 
@@ -117,7 +118,7 @@ void print_help( void )
 {
 	unsigned int i = 0;
 	while ( cmd_table[i].name != NULL ) {
-		printf( "\t%s:\t%s\n\r", cmd_table[i].name, cmd_table[i].help );
+		fdprintf(CFG.iofd, "\t%s:\t%s\n\r", cmd_table[i].name, cmd_table[i].help );
 		i++;
 	}
 	return;

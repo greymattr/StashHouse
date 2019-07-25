@@ -412,12 +412,12 @@ int write_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 	if( mode == CFG_MODE_INIT ) {
 		//printf( "erasing current config %s\n\r", cfg );
 		//fdprintf(CFG.iofd, "erasing current config %s\n\r", cfg );
-		fd = open( cfg, O_RDWR | O_CREAT | O_TRUNC, 0667 );
+		fd = open( cfg, O_RDWR | O_CREAT | O_TRUNC, 0664 );
 	}
 	if ( mode == CFG_MODE_ADD ) {
 		//printf( "appending current config %s\n\r", cfg );
 		//fdprintf(CFG.iofd, "appending current config %s\n\r", cfg );
-		fd = open( cfg, O_RDWR | O_APPEND, 0667 );
+		fd = open( cfg, O_RDWR | O_APPEND, 0664 );
 	}
 	if( fd > 0 ) {
 		if ( kv_count > 0 ) {
