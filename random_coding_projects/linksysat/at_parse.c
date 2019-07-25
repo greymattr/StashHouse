@@ -205,7 +205,6 @@ int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 				}
 			} else if( buf[2] == '-' ) {
 				res = RES_ERROR;
-				//printf("Del Value(s) - %s\n\r", &buf[3]);
 				key = parse_key( &buf[3] );
 				if( key != NULL ) {
 					if( del_kv_pair( l, key ) ) {
@@ -316,6 +315,7 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 {
 	struct kv_pair_list *temp, *prev;
 	int done = 1;
+	int not_found = 1;
 	prev = *l;
 	temp = prev->next;
 
@@ -329,16 +329,18 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 		kv_count--;
 		return 1;
 	}
-	while( temp != NULL ) {
+	while( temp->next != NULL ) {
 		if ( strncmp( temp->kv.key, key, strlen( key ) ) == 0 &&
 		     ( strlen( key ) == strlen( temp->kv.key ) ) ) {
+		  not_found = 0;
 			break;
 		}
 		prev = temp;
 		temp = temp->next;
 		done++;
 	}
-	if ( temp == NULL ) {
+//	if ( temp == NULL ) {
+	if ( not_found ) {
 		return 0;
 	}
 	prev->next = temp->next;
