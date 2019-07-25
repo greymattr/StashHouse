@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <termios.h>
 
 #define QUIET_ON					0
 #define QUIET_OFF					1
@@ -90,7 +91,7 @@ struct ctrl_cfg {
 	unsigned char esc_char;			// esc character value
 	unsigned char backsp_char;  // back space character value
 	unsigned char eol_custom[4];// custom EOL string
-	int iofd;
+	int iofd;										// IO file descriptor
 };
 
 //extern unsigned int kv_count;
@@ -133,6 +134,8 @@ int parse_kv_file( struct kv_pair_list *l, char *cfg, int mode );
 int tokpos( char *str, int len, char tok );
 //int process_cmd_buf( char *cmdbuf, int len );
 int process_cmd_buf( char *cmdbuf, int cmdlen, struct lat_cmd *c );
+void set_baud( int sd, int baud );
+int fdreadline_t( int fd, char *buf, int len, int maxtime );
 
 
 #endif

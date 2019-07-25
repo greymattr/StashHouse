@@ -40,6 +40,7 @@ void count_av_pairs( void );
 void exit_program( void );
 void print_help( void );
 void update_cfg( void );
+void print_main_help( void );
 
 struct lat_cmd cmd_table[] = {
 	{"AT+", "AT+<Key>=<Value> add key value pair", NULL},
@@ -55,44 +56,126 @@ struct lat_cmd cmd_table[] = {
 
 
 
-//int main( int argc, char **argv )
-int main( void )
+int main( int argc, char *argv[] )
 {
 	int ok = 0;
 	char buf[ MAX_BUF_SIZE ];
+	int opts;
+	char device[ 64 ];
+	unsigned int baud_rate;
+	char kv_file[ 64 ];
+	int verbose = 0;
+
+
+	memset( buf, 0, sizeof( buf ) );
+	memset( device, 0, sizeof( device ) );
+	memset( kv_file, 0, sizeof( kv_file ) );
+	/* options followed by ':'  will need to have arguments */
+	/* -d = device
+	 * -b = baud rate
+	 * -f = key value file to load at start up
+	 * -v verbose
+	 * -h help
+	 */
+	while( ( opts = getopt( argc, argv, "d:b:f:vh" ) ) != -1 ) {
+		switch( opts ) {
+		case 'd':
+			if( strlen( optarg ) < sizeof( device ) ) {
+				memcpy( device, optarg, strlen( optarg ) );
+			} else {
+				printf( "Error device name too long\n\r%s\n\r", optarg );
+				return -1;
+			}
+			break;
+		case 'b':
+			baud_rate = atoi( optarg );
+			switch( atoi( optarg ) ) {
+			case 300:
+			case 600:
+			case 1200:
+			case 2400:
+			case 4800:
+			case 9600:
+			case 14400:
+			case 19200:
+			case 28800:
+			case 38400:
+			case 56700:
+			case 115200:
+				baud_rate = atoi( optarg );
+				break;
+			default:
+				printf( "Invalid baud rate %s\n\r", optarg );
+				return -1;
+				break;  // code never reaches here but keep for formatting
+			}
+			break;
+		case 'f':
+			if( strlen( optarg ) < sizeof( kv_file ) ) {
+				memcpy( kv_file, optarg, strlen( optarg ) );
+			} else {
+				printf( "Error kv_file name too long\n\r%s\n\r", optarg );
+				return -1;
+			}
+			break;
+		case 'v':
+			verbose = 1;
+			break;
+		case 'h':
+			print_main_help();
+			return 0;
+			break;
+		}
+	}/*  end of while statement  */
 
 	ctrl_cfg_init( &CFG );
-//	printf( "ctrl_cfg_init - done\n\r" );
-	memset( buf, 0, sizeof( buf ) );
-
-	llist = init_items();
-	add_kv_pair( llist, "name", "matthew" );
-	add_kv_pair( llist, "age", "40" );
-	add_kv_pair( llist, "street", "dalton" );
-	add_kv_pair( llist, "one", "1" );
-	add_kv_pair( llist, "two", "2" );
-
-//	printf("added default config items\n\r");
-
-	parse_kv_file( llist, "test.cfg", CFG_MODE_ADD );
-
-	while( loop == 0 ) {
-		ok = read_cmd_line( CFG.iofd, buf, sizeof( buf ) );
-		// process_cmd_buf will handle command in cmd_table with callback functions
-		if ( ! process_cmd_buf( buf, ok, cmd_table ) ) {
-			if ( ok ) {
-				// parse more complex AT style commands, or those in cmd_table without callback functions
-				parse_at_command( &CFG, &llist, buf );
-			}
+	if( baud_rate != 0 ) {
+		CFG.baud_rate = baud_rate;
+	}
+	if( device[0] != '\0' ) {
+		CFG.iofd = open( device, O_RDWR  );
+		if( CFG.iofd < 0 ) {
+			printf( "could not open device %s (%d)\n\r", device, CFG.iofd );
+			return -1;
+		} else {
+			set_baud( CFG.iofd, baud_rate );
 		}
-		memset( buf, 0, sizeof( buf ) );
+		//fcntl(CFG.iofd, F_SETFL, O_NONBLOCK);
+	}
+	llist = init_items();
+	if( kv_file[0] != '\0' ) {
+		if( verbose == 1 ) {
+			printf( "populating kv list with items from %s\n\r", kv_file );
+		}
+		parse_kv_file( llist, kv_file, CFG_MODE_ADD );
+	}
+
+	fdprintf( CFG.iofd, "Initializing...\n\r" );
+
+	memset( buf, 0, sizeof( buf ) );
+	while( loop == 0 ) {
+		//ok = read_cmd_line( CFG.iofd, buf, sizeof( buf ) );
+		ok = fdreadline_t( CFG.iofd, buf, sizeof(buf), 0);
+		if( ok > 0 ){
+			// printf("read %d bytes\n\r[ %s ]\n\r", ok, buf);
+			// process_cmd_buf will handle command in cmd_table with callback functions
+			if ( ! process_cmd_buf( buf, ok, cmd_table ) ) {
+				if ( ok ) {
+					// parse more complex AT style commands, or those in cmd_table without callback functions
+					parse_at_command( &CFG, &llist, buf );
+				}
+			}
+			memset( buf, 0, sizeof( buf ) );
+		}
 	}
 	if( llist != NULL ) {
 		del_all_kv_pairs( &llist );
 		free( llist );
 	}
-	//printf( "exiting...\n\r" );
-	fdprintf(CFG.iofd, "exiting...\n\r" );
+	fdprintf( CFG.iofd, "exiting...\n\r" );
+	if( device[0] != '\0' ) {
+		close( CFG.iofd );
+	}
 	return 0;
 }
 
@@ -104,7 +187,7 @@ void dump_av_pairs( void )
 
 void count_av_pairs( void )
 {
-	fdprintf(CFG.iofd, "%d\n\r", kv_pair_lists_count() );
+	fdprintf( CFG.iofd, "%d\n\r", kv_pair_lists_count() );
 	return;
 }
 
@@ -118,7 +201,7 @@ void print_help( void )
 {
 	unsigned int i = 0;
 	while ( cmd_table[i].name != NULL ) {
-		fdprintf(CFG.iofd, "\t%s:\t%s\n\r", cmd_table[i].name, cmd_table[i].help );
+		fdprintf( CFG.iofd, "\t%s:\t%s\n\r", cmd_table[i].name, cmd_table[i].help );
 		i++;
 	}
 	return;
@@ -129,3 +212,10 @@ void update_cfg ( void )
 	write_kv_file( llist, "linksysat.cfg", CFG_MODE_INIT );
 	return;
 }
+
+void print_main_help( void )
+{
+	printf( "HELP!" );
+	return ;
+}
+

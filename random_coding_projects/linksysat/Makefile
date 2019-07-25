@@ -74,7 +74,8 @@ END_TIME = read st < $(TIME_FILE) ; \
 
 VERSION_MAJOR := "0"
 VERSION_MINOR := "1"
-VERSION_REVISION := "0" 
+#VERSION_REVISION := "0" 
+VERSION_REVISION :=$(shell date +%Y%m%d%H%M)
 VERSION_STRING := \
 	"$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_REVISION)"
 override CXXFLAGS := $(CXXFLAGS) \
@@ -128,7 +129,7 @@ clean:
 	@echo "Deleting directories"
 	@$(RM) -r build
 	@$(RM) -r bin
-	@echo "build time files"
+	@echo "Deleting build time files"
 	@$(RM) -f .*_time
 #	@$(RM) ../$(BIN_NAME)-$(VERSION_NUMBER).tgz
 	
@@ -136,7 +137,7 @@ lib: liblinksysat.a
 	@echo "installing liblinksysat.a liblinksysat.so.o in $(DESTDIR)$(INSTALL_PREFIX)/lib"
 	@mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/lib
 	@install -m 0755 liblinksysat.a liblinksysat.so.o $(DESTDIR)$(INSTALL_PREFIX)/lib
-	@mv $(DESTDIR)$(INSTALL_PREFIX)/lib/liblinksysat.so.o $(DESTDIR)$(INSTALL_PREFIX)/lib/liblinksysat.$(VERSION_NUMBER).so.o
+	@mv $(DESTDIR)$(INSTALL_PREFIX)/lib/liblinksysat.so.o $(DESTDIR)$(INSTALL_PREFIX)/lib/liblinksysat.$(VERSION_MAJOR).$(VERSION_MINOR).so.o
 	@$(RM) liblinksysat.a liblinksysat.so.o
 	
 liblinksysat.a: liblinksysat.so.o

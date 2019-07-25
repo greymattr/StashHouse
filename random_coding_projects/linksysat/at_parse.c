@@ -44,6 +44,7 @@ int fdprintf( int fd, const char *fmt, ... )
 	return ( write( fd, buf, strlen( buf ) ) );
 }
 
+/* set the initial configuration of the program */
 int ctrl_cfg_init( struct ctrl_cfg *c )
 {
 	memset( c, 0, sizeof( struct ctrl_cfg ) );
@@ -59,11 +60,11 @@ int ctrl_cfg_init( struct ctrl_cfg *c )
 	return 0;
 }
 
+/* prints an eglish modem result string complient with hayse modem AT command set */
 void print_english_result( struct ctrl_cfg *c, int res )
 {
 	switch( res ) {
 	case RES_OK:
-		//printf( "OK" );
 		fdprintf( c->iofd, "OK" );
 		break;
 	case RES_CONNECT:
@@ -104,11 +105,11 @@ void print_english_result( struct ctrl_cfg *c, int res )
 	return ;
 }
 
+/* print a numeric result code or english result code compliant with Hayse AT mdoem comand set */
 void print_result( struct ctrl_cfg *c, int res )
 {
 	if( c->verbose_mode == VERBOSE_NUMERIC ) {
-		//printf( "%d", res );
-		fdprintf( c->iofd, "%d", res ); 
+		fdprintf( c->iofd, "%d", res );
 	} else if ( c->verbose_mode == VERBOSE_ENGLISH ) {
 		print_english_result( c, res );
 	}
@@ -137,12 +138,16 @@ void print_result( struct ctrl_cfg *c, int res )
 	return;
 }
 
+/* read a command from the input device */
 int read_cmd_line( int fd, char *buf, unsigned int buf_len )
 {
 	unsigned int count = 0;
 	char ch;
 	while( read( fd, &ch, 1 ) > 0 ) {
-		if( ch != '\n' ) {
+		if( ( ch != '\n' ) &&
+		    ( ch != '\r' ) &&
+		    ( ch != '\0' ) ) {
+			//printf( "read %c\n\r", ch );
 			buf[count] = ch;
 			count++;
 		} else {
@@ -155,6 +160,7 @@ int read_cmd_line( int fd, char *buf, unsigned int buf_len )
 	return count;
 }
 
+/* used for parsing commands, specifically AT commands with NULL callback functions */
 int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 {
 	int res = RES_OK;
@@ -182,7 +188,7 @@ int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 						value = find_key_value( *l, key );
 						if( value != NULL ) {
 							//printf( "%s\n\r", value );
-							fdprintf(c->iofd, "%s\n\r", value );
+							fdprintf( c->iofd, "%s\n\r", value );
 							res = RES_OK;
 						}
 					}
@@ -245,6 +251,7 @@ int parse_at_command ( struct ctrl_cfg *c, struct kv_pair_list **l, char *buf )
 	return res;
 }
 
+/* initialize the linked list for kv pairs */
 struct kv_pair_list *init_items( void )
 {
 	kv_count = 0;
@@ -254,6 +261,7 @@ struct kv_pair_list *init_items( void )
 	return llist;
 }
 
+/* print all of the kv pairs in the current list */
 void print_kv_pair_lists( struct ctrl_cfg *c, struct kv_pair_list *l )
 {
 	if ( kv_count > 0 ) {
@@ -269,11 +277,13 @@ void print_kv_pair_lists( struct ctrl_cfg *c, struct kv_pair_list *l )
 	//printf("(%d)\n\r", kv_count);
 }
 
+/* return the number of av pairs in the list */
 int kv_pair_lists_count( void )
 {
 	return kv_count;
 }
 
+/* add a kv pair to the list */
 int add_kv_pair( struct kv_pair_list *l, char *key, char *value )
 {
 	int done = 0;
@@ -311,6 +321,7 @@ int add_kv_pair( struct kv_pair_list *l, char *key, char *value )
 	return done;
 }
 
+/* delete a kv pair from the list */
 int del_kv_pair( struct kv_pair_list **l, char *key )
 {
 	struct kv_pair_list *temp, *prev;
@@ -332,7 +343,7 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 	while( temp->next != NULL ) {
 		if ( strncmp( temp->kv.key, key, strlen( key ) ) == 0 &&
 		     ( strlen( key ) == strlen( temp->kv.key ) ) ) {
-		  not_found = 0;
+			not_found = 0;
 			break;
 		}
 		prev = temp;
@@ -351,6 +362,7 @@ int del_kv_pair( struct kv_pair_list **l, char *key )
 	return done;
 }
 
+/* delete all the kv pars from the list, and re create the list */
 void del_all_kv_pairs( struct kv_pair_list **l )
 {
 	while( *l != NULL ) {
@@ -365,7 +377,7 @@ void del_all_kv_pairs( struct kv_pair_list **l )
 	return;
 }
 
-
+/* finds a key value in the linked list */
 char *find_key_value( struct kv_pair_list *l, char *key )
 {
 	if( kv_count > 0 ) {
@@ -380,6 +392,7 @@ char *find_key_value( struct kv_pair_list *l, char *key )
 	return NULL;
 }
 
+/* finds a key in a given string based on <key>=<value> syntax */
 char *parse_key( char *str )
 {
 	char *key;
@@ -387,6 +400,7 @@ char *parse_key( char *str )
 	return key;
 }
 
+/* finds a value in a given string based on <key>=<value> syntax */
 char *parse_value( char *str )
 {
 	char *value = NULL;
@@ -405,6 +419,7 @@ char *parse_value( char *str )
 	return value;
 }
 
+/* writes out the current kv list to a file */
 int write_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 {
 	int ok = 0;
@@ -444,6 +459,7 @@ int write_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 	return ok;
 }
 
+/* updates a kv list based on the contents of a file */
 int parse_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 {
 	int ok = 0;
@@ -497,6 +513,7 @@ int parse_kv_file( struct kv_pair_list *l, char *cfg, int mode )
 	return ok;
 }
 
+/* returns the postion of a given token in a string */
 int tokpos( char *str, int len, char tok )
 {
 	int i;
@@ -510,6 +527,7 @@ int tokpos( char *str, int len, char tok )
 	return pos;
 }
 
+/* processes commands with a callback function in the command list */
 int process_cmd_buf( char *cmdbuf, int cmd_len, struct lat_cmd *c )
 {
 	int i = 0;
@@ -564,3 +582,55 @@ int process_cmd_buf( char *cmdbuf, int cmd_len, struct lat_cmd *c )
 }
 #endif
 
+void set_baud( int sd, int baud )
+{
+	struct termios tmp;
+
+	tcgetattr( sd, &tmp );
+
+	cfsetispeed( &tmp, baud );
+	cfsetospeed( &tmp, baud );
+
+	tcsetattr( sd, TCSAFLUSH, &tmp );
+	return;
+}
+
+/* fdreadline_t - is like fdreadline but uses select as a timeout
+ */
+int fdreadline_t( int fd, char *buf, int len, int maxtime )
+{
+	fd_set set;
+	struct timeval timeout;
+	int rv;
+	int ok = 0;
+	int rlen = 0;
+
+	while( 1 ) {
+		FD_ZERO( &set );
+		FD_SET( fd, &set );
+
+		timeout.tv_sec = maxtime;
+		timeout.tv_usec = 0;
+
+		rv = select( fd + 1, &set, NULL, NULL, &timeout );
+		if( rv == -1 ) {
+			return rv;
+		} else if ( rv == 0 ) {
+			break;
+		} else {
+			ok = read( fd, buf+rlen, len-rlen );
+			if( ok > 0 ) {
+				rlen += ok;
+			}
+			if( rlen == len ) {
+				break;
+			}
+		}
+	}
+	if (( buf[rlen-1] == '\n' ) ||
+		  ( buf[rlen-1] == '\r' )){
+		buf[rlen-1] = '\0';
+		rlen--;
+	}
+	return rlen;
+}
