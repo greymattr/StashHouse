@@ -8,6 +8,7 @@ StashHouse
   - mfstdsrc/					- Some of my most used snippets and function calls
   - mf_wrt1900_haqs/		- WRT1900AC firmware and hacks
   - utils/							- Some utils and rc scripts I use
+  - random_coding_projects/ - Some completed programs that don't fall into one of the other categories here
   - README.md					- This file
   - LICENSE						- OpenSource License File
    
