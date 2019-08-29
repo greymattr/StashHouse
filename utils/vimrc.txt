@@ -52,6 +52,9 @@ set showcmd
 " show matching braces
 set showmatch
 
+" new splits start on the right
+set splitright
+
 " Start scrolling at this number of lines from the bottom.
 set scrolloff=2
 
@@ -80,6 +83,7 @@ if has("syntax")
 syntax on
 endif
 
+set wildmenu
 " C/C++
 au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal cindent
 au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal comments=
@@ -147,18 +151,37 @@ autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTree
 "  endif
 "endif
 
-nnoremap :p4add    :!p4 add %
-nnoremap :p4revert :!p4 revert %
-nnoremap :p4edit   :!p4 edit %
-nnoremap :p4diff   :!p4 diff %
+
 
 nnoremap :EXIT   :qall!
 
-nnoremap <F4> :ConqueTermSplit tcsh<CR>
-let g:ConqueTerm_CloseOnEnd = 1
-let g:ConqueTerm_Color = 1
-command TERM ConqueTermSplit tcsh
-command TTERM ConqueTermSplit tcsh
+" netrw filemanager settings
+" open file in horizantel split
+" let g:netrw_browse_split = 1
+" open files in verticle split
+" let g:netrw_browse_split = 2
+" open files in new tab
+" let g:netrw_browse_split = 3
+" open files in previous window
+let g:netrw_browse_split = 4
+let g:netrw_liststyle = 3
+let g:netrw_altv = 1
+let g:netrw_winsize = 25
+" uncomment below lines to open netrw when vim is started
+" augroup ProjectDrawer
+"  autocmd!
+"  autocmd VimEnter * :Vexplore
+"augroup END
+
+let g:tagbar_left = 1
+
+" move among buffers with CTRL
+map <C-J> :bnext<CR>
+map <C-K> :bprev<CR>
+
+" make CTRL-W o close the current buffer, but create new buffer window
+" CTRL-W w moves between windows
+map <C-W>o <C-W>n<C-W><C-W><C-W>c
 
 " anything after col 80 will be highlighted
 " highlight rightMargin ctermfg=lightblue
