@@ -27,6 +27,7 @@ set autoindent
 
 " show line numbers
 set number
+set ruler
 
 " fold using markers
 set foldmethod=marker
@@ -65,6 +66,10 @@ set sidescrolloff=5
 " Make the status line always visible.
 set laststatus=2
 
+" highlight the current line that the cursor is on
+set cursorline
+highlight Cursorline term=bold cterm=bold guibg=Grey90
+
 
 " Enable the mouse.
 set mouse=a
@@ -74,6 +79,9 @@ set mousehide
 
 " Enable the popup menu.
 set mousem=popup
+
+" copy stuff to and from system clipboard
+set clipboard=unnamedplus
 
 " auto-detect the file type
 filetype plugin indent on
