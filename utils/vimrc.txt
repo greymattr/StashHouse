@@ -97,6 +97,9 @@ au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal cindent
 au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal comments=
 au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal et
 
+autocmd BufNewFile  ?akefile*      0r ~/.vim/templates/Makefile.basic
+autocmd BufNewFile  *.c            0r ~/.vim/templates/main.c
+
 set ofu=syntaxcomplete#Complete
 
 
