@@ -98,7 +98,20 @@ au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal comments=
 au BufNewFile,BufRead *.c,*.cc,*.h,*.cpp,*.hpp,*.cxx setlocal et
 
 autocmd BufNewFile  ?akefile*      0r ~/.vim/templates/Makefile.basic
-autocmd BufNewFile  *.c            0r ~/.vim/templates/main.c
+autocmd BufNewFile  main.c         0r ~/.vim/templates/main.c
+autocmd BufNewFile  *.c            0r ~/.vim/templates/source_basic.c
+"autocmd BufNewFile  *.h            0r ~/.vim/templates/header_basic.h 
+autocmd BufNewFile  *.sh           0r ~/.vim/templates/shell_script.sh
+
+autocmd BufNewFile  *.h call s:template_keywords() 
+function! s:template_keywords() 
+	0r ~/.vim/templates/header_basic.h
+	%s/HEADER_FILE/\=toupper(expand('%:r'))/g 
+	%s/DATE/\=strftime('%Y-%m-%d')/g 
+	" And more... 
+endfunction
+
+
 
 set ofu=syntaxcomplete#Complete
 
