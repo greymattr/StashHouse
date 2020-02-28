@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void cmd_wrapper(char *res, int res_len, char *cmd);
 int read_word(int fd, char *buf, int maxlen);
 int verify_addr( char *s );
 int fdprintf( int fd, const char *fmt, ... );
