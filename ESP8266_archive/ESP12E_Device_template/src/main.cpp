@@ -24,7 +24,6 @@
 #define NTP_SERVER          "time.nist.gov"
 #define MQTT_SERVER         "greysic.com"
 
-
 void run_server_tasks( void );
 void configModeCallback ( WiFiManager *myWiFiManager );
 void reconnect();
@@ -36,6 +35,8 @@ int init_eeprom( void );
 int eeprom_read_buf( char *buf, unsigned int offset, unsigned int size );
 int eeprom_write_buf( char *buf, unsigned int offset, unsigned int size );
 int init_spiffs( void );
+void reboot_esp( void );
+void reset_wifi_config( void );
 
 static unsigned char dev_mac[6];                  // MAC Address is 6 bytes
 static WiFiManager wifiManager;
@@ -50,7 +51,8 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
-  // put your setup code here, to run once:
+  int ok = 0;
+
   Serial.begin(115200);
   delay(1000);
   Serial.println("Starting...");
@@ -59,6 +61,8 @@ void setup() {
 
   ArduinoOTA.onStart([]() {
       Serial.println("Upgrade Start");
+      blink_ticker.detach();
+      blink_ticker.attach(0.2, blinker_task);
   });
   ArduinoOTA.onEnd([]() {
       Serial.println("\nUpgrade End...Restarting");
@@ -87,11 +91,13 @@ void setup() {
   blink_ticker.attach(0.5, blinker_task);
 
   init_eeprom();                // start the eeprom NV storage
-  init_spiffs();                // start the spiffs file system
-
-
+  ok = init_spiffs();                // start the spiffs file system
+  if( ok == 1 ){
+    Serial.printf("FS formatted\n\r");
+  }
 
 }
+/*     END OF SETUP      */
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -110,6 +116,9 @@ void loop() {
   blink_ticker.detach();
   digitalWrite(STATUS_LED, LOW);
   delay( 100 );
+
+  timeClient.begin();
+
   // start the web server
   server.on( "/", handle_root );
   server.onNotFound( handle_404 );
@@ -129,11 +138,14 @@ void loop() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
+  Serial.printf("Current time: %s\n\r", timeClient.getFormattedTime().c_str());
+
   while( 1 ){
      run_server_tasks();
   }
-
+  timeClient.end();
 }
+/*      END OF LOOP           */
 
 void run_server_tasks( void )
 {
@@ -149,12 +161,12 @@ void run_server_tasks( void )
 // configModeCallback - gets called when WiFiManager enters configuration mode
 void configModeCallback ( WiFiManager *myWiFiManager )
 {
-  static int fast_ticker = 0;
+  static int offline_ticker = 0;
   Serial.println( "Entered config mode" );
-  if( fast_ticker == 0 ) {
+  if( offline_ticker == 0 ) {
     blink_ticker.detach();
-    blink_ticker.attach(0.2, blinker_task);
-    fast_ticker = 1;
+    blink_ticker.attach(2, blinker_task);
+    offline_ticker = 1;
   }
   Serial.println( WiFi.softAPIP() );
   // print the SSID of the config portal
@@ -224,6 +236,7 @@ void handle_root( void )
   sprintf(buf+strlen( buf ), "%s</td></tr>", mbuf);
   sprintf( buf+strlen( buf ), "<tr><td>ssid</td><td>%s</td></tr>",  WiFi.SSID().c_str() );
   sprintf( buf+strlen( buf ), "</table>");
+  sprintf( buf+strlen( buf ), "%s", timeClient.getFormattedTime().c_str());
   sprintf( buf+strlen( buf ), "</pre></BODY></HTML>\n\r" );
   server.send( 200, "text/html", buf );
   return;
@@ -279,4 +292,17 @@ int init_spiffs( void )
     fs_is_new = 1;
   }
   return fs_is_new;
+}
+
+void reboot_esp( void )
+{
+  ESP.restart();
+}
+
+void reset_wifi_config( void )
+{
+  Serial.printf("reset wifi configuration\n\r");
+  wifiManager.resetSettings();
+  delay(1000);
+  ESP.restart();
 }
