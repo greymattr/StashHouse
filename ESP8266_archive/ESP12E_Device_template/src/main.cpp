@@ -1,7 +1,40 @@
 /*
  * Basic Template project for ESP12E NodeMCU1.0 boards
  *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020 Matthew Fatheree greymattr(_at_)gmail.com
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
+
+/* Build time configuration defines. comment out to disable functionality */
+/* THESE DEFINES ARE NOT CURRENTLY USED                                   */
+#define DEVICE_HAS_EEPROM
+#define DEVICE_HAS_SPIFFS
+#define DEVICE_HAS_HTTP
+#define DEVICE_HAS_MDNS
+#define DEVICE_HAS_MQTT
+#define DEVICE_HAS_NTP
+#define DEVICE_HAS_OTA
+
+/*  Include all headers needed for full device functionality */
 #include <Arduino.h>
 #include <ESP8266WiFi.h>          // https://github.com/esp8266/Arduino
 #include <DNSServer.h>            // Include for network functionality
@@ -18,16 +51,24 @@
 #include <FS.h>                   // Include the SPIFFS library
 #include <Wire.h>
 
-#define STATUS_LED          LED_BUILTIN  // use the built in LED for status
-#define EEPROM_DATA_SIZE    512
+/* some useful defines for all projects */
+#define STATUS_LED          LED_BUILTIN     // on board LED control
+#define BLINKER_FAST        0.2
+#define BLINKER_SLOW        2
+#define BLINKER_NORMAL      0.5
 
-#define NTP_SERVER          "time.nist.gov"
-#define MQTT_SERVER         "greysic.com"
 
+#define EEPROM_DATA_SIZE    512             // EEPROM data partition size
+
+#define MAC_ADDR_LEN        6
+
+#define NTP_SERVER          "time.nist.gov" // time server
+
+#define MQTT_SERVER         "greysic.com"   // MQTT server
+
+/* function prototypes for IOT built-in IOT functionality */
 void run_server_tasks( void );
 void configModeCallback ( WiFiManager *myWiFiManager );
-void reconnect();
-void callback(char* topic, byte* payload, unsigned int length);
 void blinker_task( void );
 void handle_root( void );
 void handle_404( void );
@@ -35,69 +76,43 @@ int init_eeprom( void );
 int eeprom_read_buf( char *buf, unsigned int offset, unsigned int size );
 int eeprom_write_buf( char *buf, unsigned int offset, unsigned int size );
 int init_spiffs( void );
+void init_OTA_upgrade( void );
 void reboot_esp( void );
 void reset_wifi_config( void );
+void reconnect();
+void mqtt_callback(char* topic, byte* payload, unsigned int length);
 
-static unsigned char dev_mac[6];                  // MAC Address is 6 bytes
-static WiFiManager wifiManager;
-ESP8266WebServer server( 80 );
+/* Global variables for IOT functionality  */
+static unsigned char dev_mac[ MAC_ADDR_LEN ];            // MAC Address of this device
+Ticker blink_ticker;                        // defualt LED blinker functionality
+/* wifi Manager variables/objects */
+static WiFiManager wifiManager;             // wifiManager for wifi configuration
 void configModeCallback ( WiFiManager *myWiFiManager );
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, NTP_SERVER, -25200, 60000);
-Ticker blink_ticker;
-
+/* NTP variables/objects */
+WiFiUDP ntpUDP;                             // NTP UDP object
+NTPClient timeClient(ntpUDP, NTP_SERVER, -25200, 60000);  // NTP Client
+/* web server variables/objects */
+ESP8266WebServer server( 80 );              // web server
+/* MQTT variables/objects */
 const char* mqtt_server = MQTT_SERVER;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
-  int ok = 0;
-
   Serial.begin(115200);
   delay(1000);
   Serial.println("Starting...");
   pinMode( STATUS_LED, OUTPUT );                // set pin for led STATUS
   WiFi.macAddress( ( byte * )dev_mac );         // fill in the devices mac address
-
-  ArduinoOTA.onStart([]() {
-      Serial.println("Upgrade Start");
-      blink_ticker.detach();
-      blink_ticker.attach(0.2, blinker_task);
-  });
-  ArduinoOTA.onEnd([]() {
-      Serial.println("\nUpgrade End...Restarting");
-      delay(1000);
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Upgrade Progress: %u%%\r", (progress / (total / 100)));
-      if( ( progress / (total / 100)) == 100 ){
-          Serial.printf("[ Upgrade Complete ]");
-          delay(1000);
-      }
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-      Serial.printf("Upgrade Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-      delay(2000);
-  });
-
-  delay(1500);
-  Serial.printf( "WiFi upgrade enabled\n\r");
-  ArduinoOTA.begin();
-  blink_ticker.attach(0.5, blinker_task);
-
-  init_eeprom();                // start the eeprom NV storage
-  ok = init_spiffs();                // start the spiffs file system
-  if( ok == 1 ){
-    Serial.printf("FS formatted\n\r");
+  blink_ticker.attach(BLINKER_NORMAL, blinker_task);       // start the default blinker task
+  init_OTA_upgrade();                 // start the over the air upgrade task
+  init_eeprom();                      // start the eeprom NV storage
+  if( init_spiffs() == 1 ) {          // start the SPIFFS file system
+    Serial.printf("spiffs file system formatted\n\r");
   }
-
+  return;
 }
-/*     END OF SETUP      */
+/*     END OF setup()      */
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -116,8 +131,9 @@ void loop() {
   blink_ticker.detach();
   digitalWrite(STATUS_LED, LOW);
   delay( 100 );
-
   timeClient.begin();
+  delay(100);
+  timeClient.update();
 
   // start the web server
   server.on( "/", handle_root );
@@ -136,76 +152,45 @@ void loop() {
 
   Serial.printf("connecting to mqtt server @ %s\n\r", mqtt_server);
   client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
+  client.setCallback(mqtt_callback);
 
   Serial.printf("Current time: %s\n\r", timeClient.getFormattedTime().c_str());
 
-  while( 1 ){
-     run_server_tasks();
+  // loop forever or until reboot
+  while( true ){
+    // run run_server_tasks is a function that should contain all custom functionality
+    run_server_tasks();
   }
+
   timeClient.end();
 }
-/*      END OF LOOP           */
+/*      END OF loop()          */
 
+/* run_server_tasks is meant to run in the main loop, as a sort of very basic task manager */
 void run_server_tasks( void )
 {
-  server.handleClient();
-  ArduinoOTA.handle();
-  if (!client.connected()) {
+  ArduinoOTA.handle();          // handle OTA upgrade traffic
+  server.handleClient();        // handle web server traffic
+  if (!client.connected()) {    // handle MQTT connections
     reconnect();
   }
   client.loop();
   return ;
 }
 
-// configModeCallback - gets called when WiFiManager enters configuration mode
+/* configModeCallback - gets called when WiFiManager enters configuration mode */
 void configModeCallback ( WiFiManager *myWiFiManager )
 {
   static int offline_ticker = 0;
   Serial.println( "Entered config mode" );
   if( offline_ticker == 0 ) {
     blink_ticker.detach();
-    blink_ticker.attach(2, blinker_task);
+    blink_ticker.attach(BLINKER_SLOW, blinker_task);
     offline_ticker = 1;
   }
   Serial.println( WiFi.softAPIP() );
   // print the SSID of the config portal
   Serial.println( myWiFiManager->getConfigPortalSSID() );
-}
-
-void reconnect()
-{
-  // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
-    String clientId = "bradsrelay";
-    // Attempt to connect
-    if (client.connect(clientId.c_str())) {
-      Serial.println("connected");
-      // Serial.printf("subscribing to topics\n\r");
-      //client.subscribe("topic");
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
-
-void callback(char* topic, byte* payload, unsigned int length)
-{
-  unsigned int i;
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-  return ;
 }
 
 void blinker_task( void )
@@ -294,6 +279,39 @@ int init_spiffs( void )
   return fs_is_new;
 }
 
+void init_OTA_upgrade( void )
+{
+  ArduinoOTA.onStart([]() {
+      Serial.println("Upgrade Start");
+      blink_ticker.detach();
+      blink_ticker.attach(BLINKER_FAST, blinker_task);
+  });
+  ArduinoOTA.onEnd([]() {
+      Serial.println("\nUpgrade End...Restarting");
+      blink_ticker.detach();
+      delay(1000);
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Upgrade Progress: %u%%\r", (progress / (total / 100)));
+      if( ( progress / (total / 100)) == 100 ){
+          Serial.printf("[ Upgrade Complete ]");
+          delay(1000);
+      }
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+      Serial.printf("Upgrade Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+      delay(2000);
+  });
+  delay(1000);
+  Serial.printf( "WiFi upgrade enabled\n\r");
+  ArduinoOTA.begin();
+}
+
 void reboot_esp( void )
 {
   ESP.restart();
@@ -305,4 +323,35 @@ void reset_wifi_config( void )
   wifiManager.resetSettings();
   delay(1000);
   ESP.restart();
+}
+
+void reconnect()
+{
+  String clientId = WiFi.hostname();  // clientID = hostname
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect(clientId.c_str())) {
+      Serial.printf("connected\n\r");
+      // Serial.printf("subscribing to topics\n\r");
+      //client.subscribe("topic");
+    } else {
+      Serial.printf("failed, rc= %d\n\r", client.state());
+      Serial.printf(" try again in 5 seconds...\n\r");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+void mqtt_callback(char* topic, byte* payload, unsigned int length)
+{
+  unsigned int i;
+  Serial.printf("Message arrived on topic [ %s ]\n\r", topic);
+  for (i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+  return ;
 }
