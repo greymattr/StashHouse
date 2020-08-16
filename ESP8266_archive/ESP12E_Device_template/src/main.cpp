@@ -27,12 +27,14 @@
 /* Build time configuration defines. comment out to disable functionality */
 /* THESE DEFINES ARE NOT CURRENTLY USED                                   */
 #define DEVICE_HAS_EEPROM
-#define DEVICE_HAS_SPIFFS
 #define DEVICE_HAS_HTTP
 #define DEVICE_HAS_MDNS
 #define DEVICE_HAS_MQTT
 #define DEVICE_HAS_NTP
 #define DEVICE_HAS_OTA
+#define DEVICE_HAS_SPIFFS
+#define DEVICE_HAS_MIN_TICKER
+#define DEVICE_HAS_SEC_TICKER
 
 /*  Include all headers needed for full device functionality */
 #include <Arduino.h>
@@ -57,7 +59,6 @@
 #define BLINKER_SLOW        2
 #define BLINKER_NORMAL      0.5
 
-
 #define EEPROM_DATA_SIZE    512             // EEPROM data partition size
 
 #define MAC_ADDR_LEN        6
@@ -70,6 +71,8 @@
 void run_server_tasks( void );
 void configModeCallback ( WiFiManager *myWiFiManager );
 void blinker_task( void );
+void once_per_sec_task( void );
+void once_per_min_task( void );
 void handle_root( void );
 void handle_404( void );
 int init_eeprom( void );
@@ -81,16 +84,20 @@ void reboot_esp( void );
 void reset_wifi_config( void );
 void reconnect();
 void mqtt_callback(char* topic, byte* payload, unsigned int length);
+void shutdown_services( void );
 
 /* Global variables for IOT functionality  */
 static unsigned char dev_mac[ MAC_ADDR_LEN ];            // MAC Address of this device
+static char dev_name[ 64 ];                        // device name
 Ticker blink_ticker;                        // defualt LED blinker functionality
+Ticker once_per_sec;                        // second ticker task ( DONT BLOCK );
+Ticker once_per_min;                        // minute ticker task ( DONT BLOCK );
 /* wifi Manager variables/objects */
 static WiFiManager wifiManager;             // wifiManager for wifi configuration
 void configModeCallback ( WiFiManager *myWiFiManager );
 /* NTP variables/objects */
 WiFiUDP ntpUDP;                             // NTP UDP object
-NTPClient timeClient(ntpUDP, NTP_SERVER, -25200, 60000);  // NTP Client
+NTPClient timeClient(ntpUDP, NTP_SERVER, (-7 * 3600), 3600);  // NTP Client
 /* web server variables/objects */
 ESP8266WebServer server( 80 );              // web server
 /* MQTT variables/objects */
@@ -105,18 +112,18 @@ void setup() {
   pinMode( STATUS_LED, OUTPUT );                // set pin for led STATUS
   WiFi.macAddress( ( byte * )dev_mac );         // fill in the devices mac address
   blink_ticker.attach(BLINKER_NORMAL, blinker_task);       // start the default blinker task
+  once_per_sec.attach(1, once_per_sec_task);
+  once_per_min.attach(60, once_per_min_task);
   init_OTA_upgrade();                 // start the over the air upgrade task
   init_eeprom();                      // start the eeprom NV storage
   if( init_spiffs() == 1 ) {          // start the SPIFFS file system
     Serial.printf("spiffs file system formatted\n\r");
   }
-  return;
 }
 /*     END OF setup()      */
 
 void loop() {
   // put your main code here, to run repeatedly:
-  char dev_name[ 64 ];
   memset( dev_name, 0, sizeof( dev_name ) );
   sprintf( dev_name, "ESP_%02X%02X%02X", dev_mac[3], dev_mac[4], dev_mac[5] );
   Serial.printf( "%s - START, attempting to connect to wifi\n\r", dev_name );
@@ -130,7 +137,7 @@ void loop() {
 
   blink_ticker.detach();
   digitalWrite(STATUS_LED, LOW);
-  delay( 100 );
+  delay(100);
   timeClient.begin();
   delay(100);
   timeClient.update();
@@ -161,8 +168,7 @@ void loop() {
     // run run_server_tasks is a function that should contain all custom functionality
     run_server_tasks();
   }
-
-  timeClient.end();
+  shutdown_services();
 }
 /*      END OF loop()          */
 
@@ -202,13 +208,30 @@ void blinker_task( void )
     led_state = HIGH;
   }
   digitalWrite(STATUS_LED, led_state);
-  return;
+}
+
+void once_per_sec_task( void )
+{
+  static int second_counter = 0;
+  //Serial.printf("sec task %s\n\r", timeClient.getFormattedTime().c_str());
+  second_counter++;
+}
+
+void once_per_min_task ( void )
+{
+  static int minute_counter = 0;
+  Serial.printf("min task %s\n\r", timeClient.getFormattedTime().c_str());
+  minute_counter++;
+  if(( minute_counter % 60 ) == 0 ){
+    //timeClient.update();
+    Serial.printf("[ %3d ] [ %s ] - once_per_minute_task\n\r", minute_counter, timeClient.getFormattedTime().c_str());
+  }
 }
 
 void handle_root( void )
 {
   char buf[ 512 ];
-  char mbuf[ 18 ];
+  char mbuf[ 32 ];
   memset( buf, 0, sizeof( buf ) );
   sprintf( buf, "<HTML><HEAD></HEAD><BODY><pre>" );
   sprintf( buf+strlen( buf ), "<h3>%s</h3>", WiFi.hostname().c_str() );
@@ -216,9 +239,9 @@ void handle_root( void )
   sprintf( buf+strlen( buf ), "<tr><td>Hostname</td><td>%s</td></tr>", WiFi.hostname().c_str() );
   sprintf( buf+strlen( buf ), "<tr><td>IP</td><td>%s</td></tr>", WiFi.localIP().toString().c_str() );
   sprintf( buf+strlen( buf ), "<tr><td>MAC</td><td>");
-  memset(mbuf, 0, sizeof(mbuf));
-  sprintf(mbuf, "%02X:%02X:%02X:%02X:%02X:%02X", dev_mac[0],dev_mac[1],dev_mac[2],dev_mac[3],dev_mac[4],dev_mac[5]);
-  sprintf(buf+strlen( buf ), "%s</td></tr>", mbuf);
+  memset( mbuf, 0, sizeof(mbuf));
+  sprintf( mbuf, "%02X:%02X:%02X:%02X:%02X:%02X", dev_mac[0],dev_mac[1],dev_mac[2],dev_mac[3],dev_mac[4],dev_mac[5]);
+  sprintf( buf+strlen( buf ), "%s</td></tr>", mbuf);
   sprintf( buf+strlen( buf ), "<tr><td>ssid</td><td>%s</td></tr>",  WiFi.SSID().c_str() );
   sprintf( buf+strlen( buf ), "</table>");
   sprintf( buf+strlen( buf ), "%s", timeClient.getFormattedTime().c_str());
@@ -314,6 +337,7 @@ void init_OTA_upgrade( void )
 
 void reboot_esp( void )
 {
+  shutdown_services();
   ESP.restart();
 }
 
@@ -327,15 +351,16 @@ void reset_wifi_config( void )
 
 void reconnect()
 {
-  String clientId = WiFi.hostname();  // clientID = hostname
+  String clientId = dev_name;  // clientID = dev_name
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       Serial.printf("connected\n\r");
-      // Serial.printf("subscribing to topics\n\r");
-      //client.subscribe("topic");
+      // by default subscribe to our own device name topic
+      Serial.printf("subscribing to topic: %s\n\r", dev_name);
+      client.subscribe(dev_name);
     } else {
       Serial.printf("failed, rc= %d\n\r", client.state());
       Serial.printf(" try again in 5 seconds...\n\r");
@@ -348,10 +373,21 @@ void reconnect()
 void mqtt_callback(char* topic, byte* payload, unsigned int length)
 {
   unsigned int i;
-  Serial.printf("Message arrived on topic [ %s ]\n\r", topic);
+  Serial.printf("MQTT MSG\n\r");
+  Serial.printf("Topic: %s \n\r", topic);
+  Serial.printf("  Msg: ");
   for (i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
   return ;
+}
+
+void shutdown_services( void )
+{
+  Serial.printf("running shutdown\n\r");
+  once_per_min.detach();
+  once_per_sec.detach();
+  EEPROM.end();
+  server.stop();
 }
