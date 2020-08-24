@@ -73,8 +73,10 @@ void configModeCallback ( WiFiManager *myWiFiManager );
 void blinker_task( void );
 void once_per_sec_task( void );
 void once_per_min_task( void );
+void send_self_redirect( char *msg, int delay );
 void handle_root( void );
 void handle_404( void );
+void handle_config( void );
 int init_eeprom( void );
 int eeprom_read_buf( char *buf, unsigned int offset, unsigned int size );
 int eeprom_write_buf( char *buf, unsigned int offset, unsigned int size );
@@ -148,6 +150,7 @@ void loop() {
 
   // start the web server
   server.on( "/", handle_root );
+  server.on("/config", handle_config );
   server.onNotFound( handle_404 );
 
   server.begin();
@@ -216,6 +219,10 @@ void blinker_task( void )
 
 void once_per_sec_task( void )
 {
+  /* This task will run once per second, and should not block!
+     If read data is needed a flag should be set, and read in the loop, or
+     run_server_tasks functions. 
+  */
   static int second_counter = 0;
   //Serial.printf("sec task %s\n\r", timeClient.getFormattedTime().c_str());
   second_counter++;
@@ -223,13 +230,24 @@ void once_per_sec_task( void )
 
 void once_per_min_task ( void )
 {
+  /* This task will run once per minute, and should not block!
+     If read data is needed a flag should be set, and read in the loop, or
+     run_server_tasks functions.
+  */
   static int minute_counter = 0;
   Serial.printf("min task %s\n\r", timeClient.getFormattedTime().c_str());
   minute_counter++;
   if(( minute_counter % 60 ) == 0 ){
-    //timeClient.update();
     Serial.printf("[ %3d ] [ %s ] - once_per_minute_task\n\r", minute_counter, timeClient.getFormattedTime().c_str());
   }
+}
+
+void send_self_redirect( char *msg, int delay )
+{
+  char buf[ 256 ];
+  memset( buf, 0, sizeof( buf ) );
+  sprintf( buf, "<HTML><HEAD><meta http-equiv=\"refresh\" content=\"%i; URL='/'\"/></HEAD><BODY>%s</BODY></HTML>", delay, msg );
+  server.send( 200, "text/html", buf);
 }
 
 void handle_root( void )
@@ -268,6 +286,32 @@ void handle_404( void )
     message += " " + server.argName( i ) + ": " + server.arg( i ) + "\n";
   }
   server.send( 404, "text/plain", message );
+  return;
+}
+
+void handle_config( void )
+{
+  char buf[1024];
+  int i;
+
+  memset(buf, 0, sizeof(buf));
+  sprintf( buf, "<HTML><HEAD></HEAD><BODY>" );
+  for ( i = 0; i < server.args(); i++ ) {
+    if ( strncmp(server.argName(i).c_str(), "wificfg", 7) == 0 ) {
+      if( strncmp(server.arg(i).c_str(), "reset", 5) == 0 ) {
+        Serial.printf("reset wifi configuration\n\r");
+        send_self_redirect((char *)"resetting wifi in 3 seconds...\n\r", 30);
+        delay(2000);
+        wifiManager.resetSettings();
+        delay(1000);
+        ESP.restart();
+        return;
+      }
+    }
+  }
+  sprintf( buf+strlen( buf ),"<button onclick=\"document.location='config?wificfg=reset'\">WiFi Config Reset</button><br>\n\r");
+  sprintf( buf+strlen( buf ),"</BODY></HTML>\n\r");
+  server.send( 200, "text/html", buf );
   return;
 }
 
