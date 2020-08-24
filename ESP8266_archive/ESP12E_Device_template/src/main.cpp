@@ -85,6 +85,8 @@ void reset_wifi_config( void );
 void reconnect();
 void mqtt_callback(char* topic, byte* payload, unsigned int length);
 void shutdown_services( void );
+void get_last_reset_reason( void );
+void print_esp8266_data( void );
 
 /* Global variables for IOT functionality  */
 static unsigned char dev_mac[ MAC_ADDR_LEN ];            // MAC Address of this device
@@ -109,6 +111,8 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("Starting...");
+  get_last_reset_reason();
+  print_esp8266_data();
   pinMode( STATUS_LED, OUTPUT );                // set pin for led STATUS
   WiFi.macAddress( ( byte * )dev_mac );         // fill in the devices mac address
   blink_ticker.attach(BLINKER_NORMAL, blinker_task);       // start the default blinker task
@@ -390,4 +394,22 @@ void shutdown_services( void )
   once_per_sec.detach();
   EEPROM.end();
   server.stop();
+}
+
+void get_last_reset_reason( void )
+{
+  Serial.printf("Reset reason %s\n\r", ESP.getResetReason().c_str());
+}
+
+void print_esp8266_data( void )
+{
+  Serial.printf("     ESP Data\n\r");
+  Serial.printf("   Chip ID: %u\n\r", ESP.getChipId());
+  Serial.printf(" Free Heap: %u\n\r", ESP.getFreeHeap());
+  Serial.printf("  Core Ver: %s\n\r",  ESP.getCoreVersion().c_str());
+  Serial.printf("   SDK Ver: %u\n\r", (int)ESP.getSdkVersion());
+  Serial.printf("  CPU Freq: %u\n\r", ESP.getCpuFreqMHz());
+  Serial.printf("  Prog Use: %u used, %u free\n\r", ESP.getSketchSize(), ESP.getFreeSketchSpace());
+  Serial.printf("  Flash ID: %u\n\r", ESP.getFlashChipId());
+  Serial.printf("\n\r");
 }
