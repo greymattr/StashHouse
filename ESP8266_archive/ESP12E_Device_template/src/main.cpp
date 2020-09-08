@@ -43,23 +43,27 @@
  #include <Adafruit_Sensor.h>
  #include <DHT.h>
  #include <DHT_U.h>
+ #include <HCSR04.h>
+ #include "OneButton.h"
+
 
 /* ESP12E / NodeMCU default Pin MAP     */
 /* PIN No.  Input Ok    Output Ok
   n D0
   a D1         X           X
-  a D2         X           X
-  o D3                     X ( pulled up )
-  o D4                     X ( pulled up )
-  a D5         X           X
-  a D6         X           X
+  a D2         X           X  pwm
+  o D3                     X  ( pulled up )
+  o D4                     X  Built in LED( pulled up )
+  a D5         X           X  pwm
+  a D6         X           X  pwm
   a D7         X           X
-  o D8                     X ( pulled low, boot fails if high at boot )
+  o D8                     X  pwm ( pulled low, boot fails if high at boot )
     TX
     RX
 */
 
 /* Build time configuration defines. comment out to disable functionality */
+/* Built in board functionality */
 #define DEVICE_HAS_EEPROM
 #define DEVICE_HAS_HTTP
 #define DEVICE_HAS_MDNS
@@ -69,9 +73,12 @@
 #define DEVICE_HAS_SPIFFS
 #define DEVICE_HAS_MIN_TICKER
 #define DEVICE_HAS_SEC_TICKER
-#define DEVICE_HAS_SPEAKER
-#define DEVICE_HAS_SD1306_SCREEN
+/* Add on sensor and IO support section */
+//#define DEVICE_HAS_SPEAKER
+//#define DEVICE_HAS_SD1306_SCREEN
 //#define DEVICE_HAS_DHT_SENSOR
+//#define DEVICE_HAS_HC_SR04
+//#define DEVICE_HAS_BUTTON
 
 /* HTTP define configurations */
 #ifdef DEVICE_HAS_HTTP
@@ -81,16 +88,16 @@ ESP8266WebServer server( HTTP_SERVER_PORT );              // web server
 
 /* SD1306 Screen define configurations */
 #ifdef DEVICE_HAS_SD1306_SCREEN
-#define SCREEN_WIDTH                128
-#define SCREEN_HEIGHT               64
-#define SCL_PIN             D2
-#define SDA_PIN             D5
+#define SCREEN_WIDTH        128
+#define SCREEN_HEIGH        64
+#define SCL_PIN             D4
+#define SDA_PIN             D3
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN); // SSD1306 Display init
 #endif
 
 /* Speaker define configurations             */
 #ifdef DEVICE_HAS_SPEAKER
-#define SPEAKER_PIN         D1
+#define SPEAKER_PIN         D8
 #endif
 
 /* DHT temp & humidity sensor define configurations */
@@ -100,6 +107,12 @@ SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN); // SSD1306 Display init
 //#define DHTTYPE             DHT22     // DHT 22 (AM2302)
 //#define DHTTYPE             DHT21     // DHT 21 (AM2301)
 DHT_Unified dht(DHTPIN, DHTTYPE);
+  #ifdef DEVICE_HAS_SD1306_SCREEN
+    #define TEMP_DISPLAY_X_OFFSET     75
+    #define TEMP_DISPLAY_Y_OFFSET     54
+    #define HUMIDITY_DISPLAY_X_OFFSET     97
+    #define HUMIDITY_DISPLAY_Y_OFFSET     54
+  #endif
 #endif
 
 /* EEPROM storage define configurations */
@@ -115,6 +128,12 @@ WiFiUDP ntpUDP;                             // NTP UDP object
 NTPClient timeClient(ntpUDP, NTP_SERVER, (-7 * 3600), 3600);  // NTP Client
 #endif
 
+#ifdef DEVICE_HAS_HC_SR04
+#define HCSR04_ECHO_PIN     D6
+#define HCSR04_TRIG_PIN     D7
+UltraSonicDistanceSensor distanceSensor(HCSR04_ECHO_PIN, HCSR04_TRIG_PIN);
+#endif
+
 /* MQTT define configurations */
 #ifdef DEVICE_HAS_MQTT
 #define MQTT_SERVER         "greysic.com"   // MQTT server
@@ -123,8 +142,15 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 #endif
 
+#ifdef DEVICE_HAS_BUTTON
+#define BUTTON_PIN          D5
+//OneButton button_1(BUTTON_PIN, true);     // active low
+OneButton button_1(BUTTON_PIN, false, false);    // active high ( need 4.7K resistor from pin to GND )
+#endif
+
 /* some useful defines for all projects */
-#define STATUS_LED          LED_BUILTIN     // on board LED control
+#define STATUS_LED          LED_BUILTIN     // ESP12E on board LED ( active HIGH )
+#define DEV_BOARD_LED       D0              // NodeMCU dev on board LED ( active LOW )
 #define BLINKER_FAST        0.2
 #define BLINKER_SLOW        2
 #define BLINKER_NORMAL      0.5
@@ -156,6 +182,16 @@ void get_last_reset_reason( void );
 void print_esp8266_data( void );
 void display_temp_humidity( void );
 void display_clock ( void );
+int hcsr04_get_distance_cm( void );
+void mqtt_status_message(char *msg);
+void pressed();
+void released();
+void changed();
+void click();
+void longClick();
+void doubleClick();
+void tripleClick();
+void tap();
 
 /* Global variables for IOT functionality  */
 static unsigned char dev_mac[ MAC_ADDR_LEN ];      // MAC Address of this device
@@ -170,14 +206,20 @@ static unsigned int update_min_flag = 1;
 static WiFiManager wifiManager;             // wifiManager for wifi configuration
 void configModeCallback ( WiFiManager *myWiFiManager );
 
+
+int motor_ina = D6;
+int motor_inb = D7;
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("Starting...");
   init_display();
+  delay(500);
   get_last_reset_reason();
   print_esp8266_data();
-  pinMode( STATUS_LED, OUTPUT );                // set pin for led STATUS
+  pinMode( STATUS_LED, OUTPUT );                   // set pin for STATUS
+  pinMode( DEV_BOARD_LED, OUTPUT );                // set pin for board STATUS
   WiFi.macAddress( ( byte * )dev_mac );         // fill in the devices mac address
   blink_ticker.attach(BLINKER_NORMAL, blinker_task);       // start the default blinker task
 
@@ -187,6 +229,12 @@ void setup() {
 #ifdef DEVICE_HAS_MIN_TICKER
   once_per_min.attach(60, once_per_min_task);
 #endif
+
+#ifdef DEVICE_HAS_BUTTON
+  button_1.attachClick(click);
+  button_1.attachDoubleClick(doubleClick);
+#endif
+
   init_OTA_upgrade();                 // start the over the air upgrade task
   init_eeprom();                      // start the eeprom NV storage
   if( init_spiffs() == 1 ) {          // start the SPIFFS file system
@@ -199,7 +247,9 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 #ifdef DEVICE_HAS_SD1306_SCREEN
+  delay(250);
   display.clear();
+  display.display();
 #endif
 
   memset( dev_name, 0, sizeof( dev_name ) );
@@ -283,6 +333,9 @@ void run_server_tasks( void )
     }
     client.loop();
 #endif
+#ifdef DEVICE_HAS_BUTTON
+    button_1.tick();
+#endif
   }
   // offline server tasks below
   if( update_sec_flag == 1 ) {
@@ -293,7 +346,7 @@ void run_server_tasks( void )
     display_temp_humidity();
     update_min_flag = 0;
   }
-  yield();
+  //yield();
   return ;
 }
 
@@ -314,6 +367,7 @@ void configModeCallback ( WiFiManager *myWiFiManager )
 #ifdef DEVICE_HAS_SD1306_SCREEN
   display.clear();
   display.setFont(ArialMT_Plain_16);
+  display.setColor(WHITE);
   display.drawString(0, 0, "DISCONNECTED");
 
   display.drawString(5, 18, myWiFiManager->getConfigPortalSSID());
@@ -330,7 +384,8 @@ void blinker_task( void )
   } else {
     led_state = HIGH;
   }
-  digitalWrite(STATUS_LED, led_state);
+  //digitalWrite(STATUS_LED, led_state);
+  digitalWrite( DEV_BOARD_LED, led_state );
 }
 
 void once_per_sec_task( void )
@@ -340,12 +395,23 @@ void once_per_sec_task( void )
      run_server_tasks functions.
   */
   static int second_counter = 0;
-  Serial.printf("sec task %d\n\r", second_counter);
+  //Serial.printf("sec task %d\n\r", second_counter);
 #ifdef DEVICE_HAS_NTP
   //Serial.printf("sec task %s\n\r", timeClient.getFormattedTime().c_str());
 #endif
   update_sec_flag = 1;
   second_counter++;
+
+#if 0
+  if( second_counter < 50 ){
+    Serial.printf("motor speed %d\n\r", second_counter * 10);
+    analogWrite(motor_ina, ( second_counter * 10 ));
+    digitalWrite(motor_inb, LOW);
+  } else {
+    analogWrite(motor_ina, 160);
+    digitalWrite(motor_inb, LOW);
+  }
+#endif
 }
 
 void once_per_min_task ( void )
@@ -487,15 +553,17 @@ int init_spiffs( void )
 int init_display( void )
 {
 #ifdef DEVICE_HAS_SD1306_SCREEN
+  delay(100);
   display.init();
+  delay(100);
+  display.flipScreenVertically();
   display.clear();
   display.display();
-  display.flipScreenVertically();
   display.setFont(ArialMT_Plain_16);
   display.setColor(WHITE);
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   //display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.drawString(10, 20, "boot...");
+  display.drawString(10, 20, "screen init");
   display.display();
 #endif
   return 0;
@@ -515,19 +583,26 @@ void init_OTA_upgrade( void )
       Serial.println("Upgrade Start");
       blink_ticker.detach();
       blink_ticker.attach(BLINKER_FAST, blinker_task);
-
+#ifdef DEVICE_HAS_SD1306_SCREEN
+      display.setFont(ArialMT_Plain_16);
+      display.setColor(WHITE);
+      display.clear();
+      display.drawString(5, 32, "Upgrade: 0%");
+      display.display();
+#endif
   });
   ArduinoOTA.onEnd([]() {
       Serial.println("\nUpgrade End...Restarting");
       blink_ticker.detach();
+#ifdef DEVICE_HAS_SD1306_SCREEN
+      display.end();
+#endif
       delay(1000);
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
       Serial.printf("Upgrade Progress: %u%%\r", (progress / (total / 100)));
 #ifdef DEVICE_HAS_SD1306_SCREEN
       display.clear();
-      display.setFont(ArialMT_Plain_16);
-      display.setColor(WHITE);
       display.drawString(5, 32, "Upgrade: " + String((int)round((progress / (total / 100)))) + "%");
       display.display();
 #endif
@@ -573,16 +648,28 @@ void reset_wifi_config( void )
 void reconnect()
 {
 #ifdef DEVICE_HAS_MQTT
-  String clientId = dev_name;  // clientID = dev_name
+  char cmd_topic[255];
+  char stat_topic[255];
+
+  memset(cmd_topic, 0, sizeof(cmd_topic));
+  memset(stat_topic, 0, sizeof(stat_topic));
+
+  sprintf(cmd_topic, "%s/cmd", dev_name);
+  sprintf(stat_topic, "%s/status", dev_name);
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(dev_name)) {
       Serial.printf("connected\n\r");
-      // by default subscribe to our own device name topic
+      // by default subscribe to our own device name topic, device_name/cmd, device_name/status
       Serial.printf("subscribing to topic: %s\n\r", dev_name);
       client.subscribe(dev_name);
+      Serial.printf("subscribing to topic: %s\n\r", cmd_topic);
+      client.subscribe(cmd_topic);
+      Serial.printf("subscribing to topic: %s\n\r", stat_topic);
+      client.subscribe(stat_topic);
+      mqtt_status_message((char *)"Online");
     } else {
       Serial.printf("failed, rc= %d\n\r", client.state());
       Serial.printf(" try again in 5 seconds...\n\r");
@@ -640,17 +727,20 @@ void print_esp8266_data( void )
   Serial.printf("  CPU Freq: %u\n\r", ESP.getCpuFreqMHz());
   Serial.printf("  Prog Use: %u used, %u free\n\r", ESP.getSketchSize(), ESP.getFreeSketchSpace());
   Serial.printf("  Flash ID: %u\n\r", ESP.getFlashChipId());
+  Serial.printf(" Board LED: %d\n\r", STATUS_LED);
+  Serial.printf("   Pin Map:\n\r");
+  Serial.printf("    %d = D0\n\r", D0);
+  Serial.printf("    %d = D1\n\r", D1);
+  Serial.printf("    %d = D2\n\r", D2);
+  Serial.printf("    %d = D3\n\r", D3);
+  Serial.printf("    %d = D4\n\r", D4);
+  Serial.printf("    %d = D5\n\r", D5);
+  Serial.printf("    %d = D6\n\r", D6);
+  Serial.printf("    %d = D7\n\r", D7);
+  Serial.printf("    %d = D8\n\r", D8);
+  Serial.printf("    %d = A0\n\r", A0);
   Serial.printf("\n\r");
 }
-
-#ifdef DEVICE_HAS_DHT_SENSOR
-  #ifdef DEVICE_HAS_SD1306_SCREEN
-    #define TEMP_DISPLAY_X_OFFSET     75
-    #define TEMP_DISPLAY_Y_OFFSET     54
-    #define HUMIDITY_DISPLAY_X_OFFSET     97
-    #define HUMIDITY_DISPLAY_Y_OFFSET     54
-  #endif
-#endif
 
 void display_temp_humidity( void )
 {
@@ -709,4 +799,56 @@ void display_clock ( void )
   update_sec_flag = 0;
 #endif
 #endif
+}
+
+int hcsr04_get_distance_cm( void )
+{
+  int ok = -1;
+#ifdef DEVICE_HAS_HC_SR04
+  Serial.print("Distance: ");
+  ok = (int)distanceSensor.measureDistanceCm();
+  //Serial.println(distanceSensor.measureDistanceCm());
+#endif
+  return ok;
+}
+
+void mqtt_status_message(char *msg)
+{
+#ifdef DEVICE_HAS_MQTT
+  char stat_topic[255];
+  memset(stat_topic, 0, sizeof(stat_topic));
+  sprintf(stat_topic, "%s/status", dev_name);
+  if(client.connected()) {
+    client.publish(stat_topic, msg);
+  }
+#endif
+return;
+}
+
+void pressed() {
+    Serial.println("pressed");
+}
+void released() {
+    Serial.print("released: ");
+}
+void changed() {
+    Serial.println("changed");
+}
+void click() {
+    Serial.println("click\n");
+#ifdef DEVICE_HAS_SPEAKER
+    tone(SPEAKER_PIN, 1400, 500);
+#endif
+}
+void longClick() {
+    Serial.println("long click\n");
+}
+void doubleClick() {
+    Serial.println("double click\n");
+}
+void tripleClick() {
+    Serial.println("triple click\n");
+}
+void tap() {
+    Serial.println("tap");
 }
