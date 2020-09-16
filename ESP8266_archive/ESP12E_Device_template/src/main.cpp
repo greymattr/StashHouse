@@ -49,6 +49,16 @@
 #include <pcf8574_esp.h>
 #include <Wire.h>
 #include <CD74HC4067.h>
+#include <I2Cdev.h>
+#include <HMC5883L.h>
+
+/* some useful defines for all projects */
+#define STATUS_LED          LED_BUILTIN     // ESP12E on board LED ( active HIGH )
+#define DEV_BOARD_LED       D0              // NodeMCU dev on board LED ( active LOW )
+#define BLINKER_FAST        0.2
+#define BLINKER_SLOW        2
+#define BLINKER_NORMAL      0.5
+#define MAC_ADDR_LEN        6
 
 /* ESP12E / NodeMCU default Pin MAP     */
 /* PIN No.  Input Ok    Output Ok
@@ -83,8 +93,9 @@
 //#define DEVICE_HAS_DHT_SENSOR
 //#define DEVICE_HAS_HC_SR04
 #define DEVICE_HAS_BUTTON
-#define DEVICE_HAS_PCF8574_DIGITAL_IO
-#define DEVICE_HAS_CD74HC4067_ANALOG_IO
+//#define DEVICE_HAS_PCF8574_DIGITAL_IO
+//#define DEVICE_HAS_CD74HC4067_ANALOG_IO
+//#define DEVICE_HAS_HMC5883L_COMPASS
 
 #define I2C_SCL_PIN             D4
 #define I2C_SDA_PIN             D3
@@ -154,8 +165,12 @@ PubSubClient client(espClient);
 
 #ifdef DEVICE_HAS_BUTTON
 #define BUTTON_PIN          D5
-//OneButton button_1(BUTTON_PIN, true);     // active low
-OneButton button_1(BUTTON_PIN, false, false);    // active high ( need 4.7K resistor from pin to GND )
+#define BUTTON_ACTIVE_HIGH        // comment out if button press pulls BUTTON_PIN LOW
+#ifdef BUTTON_ACTIVE_HIGH
+OneButton button_1(BUTTON_PIN, false, false); // active high ( need 4.7K resistor from pin to GND )
+#else
+OneButton button_1(BUTTON_PIN, true);         // active low
+#endif
 #endif
 
 #ifdef DEVICE_HAS_PCF8574_DIGITAL_IO
@@ -179,13 +194,33 @@ const int analog_sig_pin = CD74HC4067_SIG_PIN; // select a pin to share with the
 static int CD74HC4067_channel_val_array[ CD74HC406_CHANNEL_COUNT ];
 #endif
 
-/* some useful defines for all projects */
-#define STATUS_LED          LED_BUILTIN     // ESP12E on board LED ( active HIGH )
-#define DEV_BOARD_LED       D0              // NodeMCU dev on board LED ( active LOW )
-#define BLINKER_FAST        0.2
-#define BLINKER_SLOW        2
-#define BLINKER_NORMAL      0.5
-#define MAC_ADDR_LEN        6
+#ifdef DEVICE_HAS_HMC5883L_COMPASS
+HMC5883L hmc5883l_mag;
+int16_t hmc5883l_x, hmc5883l_y, hmc5883l_z;
+#endif
+
+
+void test_task( void )
+{
+#if 0
+  // this is a test task, it will be run as a part of the second ticker.
+  // read raw heading measurements from device
+  hmc5883l_mag.getHeading(&hmc5883l_x, &hmc5883l_y, &hmc5883l_z);
+
+  // display tab-separated gyro x/y/z values
+  Serial.print("mag:\t");
+  Serial.print(hmc5883l_x); Serial.print("\t");
+  Serial.print(hmc5883l_y); Serial.print("\t");
+  Serial.print(hmc5883l_z); Serial.print("\t");
+
+// To calculate heading in degrees. 0 degree indicates North
+  float heading = atan2(hmc5883l_y, hmc5883l_x);
+  if(heading < 0)
+    heading += 2 * M_PI;
+  Serial.print("heading:\t");
+  Serial.println(heading * 180/M_PI);
+#endif
+}
 
 /* function prototypes for IOT built-in IOT functionality */
 void run_server_tasks( void );
@@ -203,7 +238,7 @@ int eeprom_write_buf( char *buf, unsigned int offset, unsigned int size );
 int FS_init( void );
 int display_init( void );
 void dht_init( void );
-void init_OTA_upgrade( void );
+void OTA_upgrade_init( void );
 void reboot_esp( void );
 void reset_wifi_config( void );
 void reconnect();
@@ -235,6 +270,8 @@ void appendFile(const char * path, const char * message);
 void renameFile(const char * path1, const char * path2);
 void deleteFile(const char * path);
 void tickers_init( void );
+void hmc5883l_init( void );
+void screen_task( void );
 
 
 /* Global variables for IOT functionality  */
@@ -254,6 +291,7 @@ static unsigned int second_counter = 0;
 static unsigned int minute_counter = 0;
 
 void setup() {
+  int ok;
   Serial.begin(115200);
   delay(1000);
   Serial.println("Starting...");
@@ -267,17 +305,20 @@ void setup() {
   blink_ticker.attach(BLINKER_NORMAL, blinker_task);      // start the default blinker task
   tickers_init();                        // start minute and second tickers
   eeprom_init();                         // start the eeprom NV storage
-  if( FS_init() == 1 ) {                 // start the file system
-    Serial.printf("file system formatted\n\r");
+  ok = FS_init();
+  if( ok != -1 ) {                 // start the file system
+    Serial.printf("file system mounted ( %d )\n\r", ok);
+    listDir("/");
   }
-  init_OTA_upgrade();                    // start the over the air upgrade task
+  OTA_upgrade_init();                    // start the over the air upgrade task
   /* External harware Init(s) */
   i2c_bus_scan();                        // scan the I2C bus for devices
   buttons_init();                        // Initialize any buttons
   display_init();                        // start the display
   pcf8574_init();                        // start expanded digital IO
   cd74hc4067_init();                     // start expanded analog INPUT
-  dht_init();                     // start temp and humidity sensor
+  dht_init();                            // start temp and humidity sensor
+  hmc5883l_init();
   delay(500);
 }
 /*     END OF setup()      */
@@ -285,7 +326,6 @@ void setup() {
 void loop() {
 
   // put your main code here, to run repeatedly:
-
   memset( dev_name, 0, sizeof( dev_name ) );
   sprintf( dev_name, "ESP_%02X%02X%02X", dev_mac[3], dev_mac[4], dev_mac[5] );
   Serial.printf( "%s - START, attempting to connect to wifi\n\r", dev_name );
@@ -311,14 +351,6 @@ void loop() {
   server.on("/config", handle_config );
   server.onNotFound( handle_404 );
   server.begin();
-#endif
-
-#ifdef DEVICE_HAS_SD1306_SCREEN
-  display.clear();
-  display.setFont(ArialMT_Plain_16);
-  display.drawString(5, 0, WiFi.hostname().c_str());
-  display.drawString(5, 18, WiFi.localIP().toString().c_str());
-  display.display();
 #endif
 
 #ifdef DEVICE_HAS_MDNS
@@ -354,7 +386,6 @@ void loop() {
 /* run_server_tasks is meant to run in the main loop, as a sort of very basic task manager */
 void run_server_tasks( void )
 {
-  char ts_buf[128];
 
   if( DeviceConnected == 1 ){
 #ifdef DEVICE_HAS_OTA
@@ -374,17 +405,17 @@ void run_server_tasks( void )
 #endif
   }
   // offline server tasks below
+
   if( update_sec_flag == 1 ) {
-    display_clock();
+    screen_task();
+    test_task();
     update_sec_flag = 0;
   }
   if( update_min_flag == 1 ) {
     display_temp_humidity();
     update_min_flag = 0;
-    memset(ts_buf, 0, sizeof(ts_buf));
-    sprintf(ts_buf, "%s - ( %d mins upTime )\n\r",timeClient.getFormattedTime().c_str(), minute_counter );
-    client.publish("/esp9vUptime", ts_buf);
   }
+
   return ;
 }
 
@@ -607,7 +638,7 @@ void dht_init( void )
 #endif
 }
 
-void init_OTA_upgrade( void )
+void OTA_upgrade_init( void )
 {
 #ifdef DEVICE_HAS_OTA
   ArduinoOTA.onStart([]() {
@@ -638,19 +669,19 @@ void init_OTA_upgrade( void )
       display.display();
 #endif
       if( ( progress / (total / 100)) == 100 ){
-          Serial.printf("[ Upgrade Complete ]");
+        Serial.printf("[ Upgrade Complete ]");
 #ifdef DEVICE_HAS_SD1306_SCREEN
-          display.clear();
-          display.drawString(5, 5, "Complete 100%");
-          display.display();
+        display.clear();
+        display.drawString(5, 5, "Complete 100%");
+        display.display();
 #endif
-          delay(1000);
-          display.clear();
-          display.drawString(5, 5, "Reboot");
-          display.display();
-          delay(500);
-          display.clear();
-          display.display();
+        delay(1000);
+        display.clear();
+        display.drawString(5, 5, "Reboot");
+        display.display();
+        delay(500);
+        display.clear();
+        display.display();
       }
   });
   ArduinoOTA.onError([](ota_error_t error) {
@@ -835,7 +866,7 @@ void display_clock ( void )
   display.fillRect(4, 36, 64, 18);
   display.setColor(WHITE);
   display.drawString(5, 36, timeClient.getFormattedTime());
-  display.display();
+  //display.display();
   update_sec_flag = 0;
 #endif
 #endif
@@ -1023,7 +1054,7 @@ void writeFile(const char * path, const char * message)
   } else {
     Serial.println("Write failed");
   }
-  delay(2000); // Make sure the CREATE and LASTWRITE times are different
+  delay(1000); // Make sure the CREATE and LASTWRITE times are different
   file.close();
 #endif
 }
@@ -1078,5 +1109,27 @@ void tickers_init( void )
   #endif
   #ifdef DEVICE_HAS_MIN_TICKER
     once_per_min.attach(60, once_per_min_task);
+  #endif
+}
+
+void hmc5883l_init( void )
+{
+#ifdef DEVICE_HAS_HMC5883L_COMPASS
+  hmc5883l_mag.initialize();
+  // verify connection
+  Serial.println("Testing device connections...");
+  Serial.println(hmc5883l_mag.testConnection() ? "HMC5883L connection successful" : "HMC5883L connection failed");
+#endif
+}
+
+void screen_task( void )
+{
+  #ifdef DEVICE_HAS_SD1306_SCREEN
+    display.clear();
+    display.setFont(ArialMT_Plain_16);
+    display.drawString(5, 0, WiFi.hostname().c_str());
+    display.drawString(5, 18, WiFi.localIP().toString().c_str());
+    display_clock();
+    display.display();
   #endif
 }
