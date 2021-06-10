@@ -22,13 +22,38 @@ alias kscope     'cbrowser'
 alias pine       'alpine'
 alias git-submit 'git push origin master'
 
-setenv PATH ":/usr/sbin:/sbin:./:~/bin:~/bin/scripts:"$PATH":/usr/local/bin:/usr/local/sbin"
+setenv PATH ":/usr/sbin:/sbin:./:$HOME/bin:$HOME/bin/scripts:"$PATH":/usr/local/bin:/usr/local/sbin"
 
-setenv LDEV "~/werk"
+setenv LDEV "$HOME/werk"
+
+# Colors!
+#  MEANING:	
+# Set foreground color	%{\033[38;5;###m%}	
+# Set background color	%{\033[48;4;###m%}	
+# Reset color back to normal	%{\033[0m%}	
+
+# FOREGROUND COLORS
+set     black="%{\033[38;5;0m%}"
+set     reddark="%{\033[38;5;1m%}"
+set   greendark="%{\033[38;5;2m%}"
+set  yellowdark="%{\033[38;5;3m%}"
+set    blue="%{\033[38;5;4m%}"
+set magentadark="%{\033[38;5;5m%}"
+set    cyandark="%{\033[38;5;6m%}"
+set   white="%{\033[38;5;7m%}"
+set   greydark="%{\033[38;5;8m%}"
+set   red="%{\033[38;5;9m%}"
+set   green="%{\033[38;5;10m%}"
+set   yellow="%{\033[38;5;11m%}"
+set   magenta="%{\033[38;5;13m%}"
+set   cyan="%{\033[38;5;14m%}"
+set   grey="%{\033[38;5;15m%}"
+set     end="%{\033[0m%}" 
+# ${end} is needed at the end.
 
 
 # default prompt
-set prompt='[%n@%m %c][%h]# '
+set prompt='[%n@${white}%m${end} %c][%h]# '
 
 #   my/tmp 21)
 #set prompt = "%B%U%C2%u %h)%b "
@@ -36,3 +61,4 @@ set prompt='[%n@%m %c][%h]# '
 # user@hostpwd[hist]time%
 #set prompt="%n@%m%B%~%b[%h]%B%T%b%#"
 
+unset black reddark greendark yellowdark blue magentadark cynadark red green yellow megenta cyan grey end
