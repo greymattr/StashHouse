@@ -53,7 +53,7 @@ set     end="%{\033[0m%}"
 
 
 # default prompt
-set prompt='[%n@${white}%m${end} %c][%h]# '
+set prompt="[%n@${white}%m${end} %c][%h]# "
 
 #   my/tmp 21)
 #set prompt = "%B%U%C2%u %h)%b "
