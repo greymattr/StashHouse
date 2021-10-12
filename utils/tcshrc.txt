@@ -22,7 +22,7 @@ alias kscope     'cbrowser'
 alias pine       'alpine'
 alias git-submit 'git push origin master'
 
-setenv PATH ":/usr/sbin:/sbin:./:$HOME/bin:$HOME/bin/scripts:"$PATH":/usr/local/bin:/usr/local/sbin"
+setenv PATH "/usr/sbin:/sbin:$HOME/bin:$HOME/bin/scripts:"$PATH":/usr/local/bin:/usr/local/sbin"
 
 setenv LDEV "$HOME/werk"
 
