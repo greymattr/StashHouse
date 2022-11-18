@@ -1,0 +1,55 @@
+
+Thu 17 Nov 2022 11:20:39 AM PST
+
+run a command
+:<command>
+
+
+insert output from command at prompt
+:r!<command>
+
+Example ( insert data )
+:r!date
+
+
+search and replace
+:%s/<foo>/<bar>/g
+
+Example replace 'Matt' with 'Matthew'
+:%s/Matt/Matthew/g
+
+visual file explorer
+:Vex
+
+
+indent a block of code
+1. switch to visual mode
+2. highlight block of code
+3. use > to add indentation, < to remove indentation.
+
+undo last change
+:u
+
+switch between panes
+<CTRL>-w l
+<CTRL>-w h
+
+
+Window Resizing
+:res +5
+:res -5
+You can use :vertical resize to change the width of the current window. To change the width to 80 columns, use:
+
+:vertical resize 80
+You can also change the width in increments. To change the width by increments of 5, use:
+
+:vertical resize +5
+:vertical resize -5
+
+
+Split resizing
+For a split window: You can use Ctrl-w + and Ctrl-w - to resize the height of the current window by a single row. 
+For a vsplit window: You can use Ctrl-w > and Ctrl-w < to resize the width of the current window by a single column.
+
+
+
