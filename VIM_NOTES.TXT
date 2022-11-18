@@ -1,55 +1,83 @@
-
 Thu 17 Nov 2022 11:20:39 AM PST
+===============================
 
 run a command
-:<command>
-
+  :<command>
 
 insert output from command at prompt
-:r!<command>
+  :r!<command>
 
-Example ( insert data )
-:r!date
+  Example ( insert data )
+  :r!date
 
 
 search and replace
-:%s/<foo>/<bar>/g
+  :%s/<foo>/<bar>/g
 
-Example replace 'Matt' with 'Matthew'
-:%s/Matt/Matthew/g
+  Example replace 'Matt' with 'Matthew'
+  :%s/Matt/Matthew/g
 
 visual file explorer
-:Vex
+  :Vex
 
 
 indent a block of code
-1. switch to visual mode
-2. highlight block of code
-3. use > to add indentation, < to remove indentation.
+  1. switch to visual mode
+  2. highlight block of code
+  3. use > to add indentation, < to remove indentation.
 
 undo last change
-:u
+  :u
+
+redo last change
+  <CTRL>-r
 
 switch between panes
-<CTRL>-w l
-<CTRL>-w h
+  <CTRL>-w l
+  <CTRL>-w h
 
 
 Window Resizing
-:res +5
-:res -5
-You can use :vertical resize to change the width of the current window. To change the width to 80 columns, use:
+  :res +5
+  :res -5
+  You can use :vertical resize to change the width of the current window. To change the width to 80 columns, use:
 
-:vertical resize 80
-You can also change the width in increments. To change the width by increments of 5, use:
+  :vertical resize 80
+  You can also change the width in increments. To change the width by increments of 5, use:
 
-:vertical resize +5
-:vertical resize -5
+  :vertical resize +5
+  :vertical resize -5
 
 
 Split resizing
-For a split window: You can use Ctrl-w + and Ctrl-w - to resize the height of the current window by a single row. 
-For a vsplit window: You can use Ctrl-w > and Ctrl-w < to resize the width of the current window by a single column.
+  For a split window: You can use Ctrl-w + and Ctrl-w - to resize the height of the current window by a single row. 
+  For a vsplit window: You can use Ctrl-w > and Ctrl-w < to resize the width of the current window by a single column.
 
+Copy, Cut and Paste in Visual Mode
+  Alternatively, you can copy and edit text using the visual selection feature. This mode allows you to select text by navigating around.
+
+  Use Esc to exit out of the previously used mode and enable visual selection by pressing:
+
+  v (lowercase) to start selecting individual characters
+  V (uppercase) to select the entire line
+  Ctrl+v to select by block
+  After you have selected the wanted text you can press:
+
+  y to yank (copy) the content
+  d to delete (cut) the content
+  p to put (paste) the content
+
+Open a terminal
+  :term
+
+Open a terminal at the bottom
+  :bo term
+
+Switch between window buffers ( splits )
+  <CTRL>-w w
+
+Word wrap in visual mode
+  1. highlight text
+  2. use 'gq' to reformat
 
 
