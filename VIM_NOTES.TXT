@@ -67,6 +67,13 @@ Copy, Cut and Paste in Visual Mode
   d to delete (cut) the content
   p to put (paste) the content
 
+  or :e filename to open a new file, and P to paste
+
+Copy block of test to new file:
+  use v to enter visual mode and highlight text
+  :'<,'>write! >> the_other_file.txt
+
+
 Open a terminal
   :term
 
@@ -79,5 +86,50 @@ Switch between window buffers ( splits )
 Word wrap in visual mode
   1. highlight text
   2. use 'gq' to reformat
+
+
+Go to file
+  The following commands open the file name under the cursor:
+
+  gf	open in the same window ("goto file")
+  <c-w>f	open in a new window (Ctrl-w f)
+  <c-w>gf	open in a new tab (Ctrl-w gf)
+
+Buffers:
+  :bn - next buffer
+  :bp - previous buffer
+
+ close buffer without quitting
+  :bd
+
+ open/edit/create file in new buffer
+  :e <filename>
+
+quick move between buffers
+  <CTRL>-j
+  <CTRL>-k
+
+
+Run contents of vim buffer as a shell script
+  :!sh %
+
+
+Use curl to fill a vim buffer
+  :r! curl -s http://something.com/filename
+
+use sed like features to add or remove comments to bash files
+  :[start line],[end line]s/^/#
+  :[start line],[end line]s/#/
+
+use visual mode and insert to comment a block of code
+  <CTRL>-v
+  highlight rows
+  SHIFT-I
+  #, or // depending con comments
+  <ESC><ESC>
+
+
+
+
 
 
