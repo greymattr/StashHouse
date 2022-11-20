@@ -19,7 +19,7 @@ search and replace
 
 visual file explorer
   :Vex
-
+  :Lex
 
 indent a block of code
   1. switch to visual mode
@@ -53,6 +53,10 @@ Split resizing
   For a split window: You can use Ctrl-w + and Ctrl-w - to resize the height of the current window by a single row. 
   For a vsplit window: You can use Ctrl-w > and Ctrl-w < to resize the width of the current window by a single column.
 
+Open a split with specifc size
+  :20 split   ( split will be 20 lines )
+
+
 Copy, Cut and Paste in Visual Mode
   Alternatively, you can copy and edit text using the visual selection feature. This mode allows you to select text by navigating around.
 
@@ -74,11 +78,29 @@ Copy block of test to new file:
   :'<,'>write! >> the_other_file.txt
 
 
+TERMINAL
 Open a terminal
   :term
 
 Open a terminal at the bottom
   :bo term
+
+Open a terminal at the bottom 10 rows high
+  :bo term ++rows=10
+
+Open a terminal in the current window buffer
+  :term ++curwin
+
+Open a split 10 ros high running the terminal
+  :bo 10 split
+  :term ++curwin
+
+Terminal get back to vim mode
+  <CTRL>-w :
+  <CTRL>-\ <CTRL>-N
+
+Close terminal
+  <CTRL>-w :bd
 
 Switch between window buffers ( splits )
   <CTRL>-w w
@@ -101,6 +123,7 @@ Buffers:
 
  close buffer without quitting
   :bd
+  :clo
 
  open/edit/create file in new buffer
   :e <filename>
