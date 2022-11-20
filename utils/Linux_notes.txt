@@ -1,7 +1,6 @@
         Linux Notes
         
         Matthew Fatheree
-        matthewf@spyder-fonix.com
         
     CHANGELOG:
     

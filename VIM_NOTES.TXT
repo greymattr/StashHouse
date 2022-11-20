@@ -152,6 +152,13 @@ use visual mode and insert to comment a block of code
   <ESC><ESC>
 
 
+IDE ( sort of )
+  open file
+  :Lex
+  <CTRL>-w w to swtichback to file window
+  :bo 10 split
+  :term ++curwin
+
 
 
 
