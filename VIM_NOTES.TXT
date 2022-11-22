@@ -168,7 +168,7 @@ PLUGINS
 
 NerdTreee
   :NTree
-
+  <CTRL>-n
 
 
 NerdCommenter
@@ -181,8 +181,6 @@ NerdCommenter
 TabBuffer
   <CTRL>-j   switch buffers
   <CTRL>-k   switch buffers
-
-  
 
 
 TIPS AND TRICKS
