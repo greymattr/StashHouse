@@ -105,6 +105,9 @@ Close terminal
 Switch between window buffers ( splits )
   <CTRL>-w w
 
+Open new unnamed buffer without closeing current buffer
+  <CTRL>-w o
+
 Word wrap in visual mode
   1. highlight text
   2. use 'gq' to reformat
@@ -118,6 +121,8 @@ Go to file
   <c-w>gf	open in a new tab (Ctrl-w gf)
 
 Buffers:
+  <F5> - list buffers
+
   :bn - next buffer
   :bp - previous buffer
 
@@ -159,7 +164,75 @@ IDE ( sort of )
   :bo 10 split
   :term ++curwin
 
+PLUGINS
+
+NerdTreee
+  :NTree
 
 
 
+NerdCommenter
+  <CTRL>-v
+  highlight text
+  \cc   - comments
+  \c<space>  - uncomments
 
+
+TabBuffer
+  <CTRL>-j   switch buffers
+  <CTRL>-k   switch buffers
+
+  
+
+
+TIPS AND TRICKS
+  1   gg Move to the first line of the file
+  2   G Move to the last line
+  3   gg=G Reindent the whole file
+  4   gv Reselect the last visual selection
+  5   `< Jump to beginning of last visual selection
+  6   `> Jump to end of last visual selection
+  7   ^ Move to first non-blank character of the line
+  8   g_ Move the last non-blank character of the line (but you remove trailing whitespace, right)
+  9   g_lD Delete all the trailing whitespace on the line
+  10  ea Append to the end of the current word
+  11  gf Jump to the file name under the cursor
+  12  xp Swap character forward
+  13  Xp Swap character backward
+  14  yyp Duplicate the current line
+  15  yapP Duplicate the current paragraph
+  16  dat Delete around an HTML tag, including the tag
+  17  dit Delete inside an HTML tag, excluding the tag
+  18  w Move one word to the right
+  19  b Move one word to the left
+  20  dd Delete the current line
+  21  zc Close current fold
+  22  zo Open current fold
+  23  za Toggle current fold
+  24  zi Toggle folding entirely
+  25  << Outdent current line
+  26  >> Indent current line
+  27  z= Show spelling corrections
+  28  zg Add to spelling dictionary
+  29  zw Remove from spelling dictionary
+  30  ~ Toggle case of current character
+  31  gUw Uppercase until end of word (u for lower, ~ to toggle)
+  32  gUiw Uppercase entire word (u for lower, ~ to toggle)
+  33  gUU Uppercase entire line
+  34  gu$ Lowercase until the end of the line
+  35  da" Delete the next double-quoted string
+  36  + Move to the first non-whitespace character of the next line
+  37  S Delete current line and go into insert mode
+  38  I insert at the beginning of the line
+  39  ci" Change what’s inside the next double-quoted string
+  40  ca{ Change inside the curly braces (try [, (, etc.)
+  41  vaw Visually select word
+  42  dap Delete the whole paragraph
+  43  r Replace a character
+  44  `[ Jump to beginning of last yanked text
+  45  `] Jump to end of last yanked text
+  46  g; Jump to the last change you made
+  47  g, Jump back forward through the change list
+  48  & Repeat last substitution on current line
+  49  g& Repeat last substitution on all lines
+  50  ZZ Save the current file and close it
