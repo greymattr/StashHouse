@@ -37,7 +37,7 @@ echo "<h3>${PAGE_TITLE}</h3>"
 
 cmd=$(get_cgi_val "CMD")
 
-echo "<form id=\"myform\" action=\"shell_cgi.cgi\">"
+echo "<form id=\"myform\" action=\"FILE_NAME\">"
 echo "<input type=\"hidden\" id=CMD name=\"CMD\">"
 echo "</form>"
 echo ""
