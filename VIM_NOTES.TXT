@@ -183,6 +183,13 @@ TabBuffer
   <CTRL>-k   switch buffers
 
 
+vimdiff
+  :do - get changes from other file
+  :dp - put changes from this file to other file
+  ]c  - next diff
+  [c  - previous diff
+  :diffupdate - update files after change
+
 TIPS AND TRICKS
   1   gg Move to the first line of the file
   2   G Move to the last line
