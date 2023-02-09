@@ -178,9 +178,21 @@ NerdCommenter
   \c<space>  - uncomments
 
 
+nmap <F4> :TagbarToggle<CR>
+nmap <C-b> :BuffergatorToggle<CR>
+nmap <F7> :bo term ++rows=10<CR>
+nnoremap <F5> :buffers<CR>:buffer<Space>
+map <C-n> :NERDTreeToggle<CR>
+
+
+
+
 TabBuffer
   <CTRL>-j   switch buffers
   <CTRL>-k   switch buffers
+
+
+
 
 
 vimdiff
