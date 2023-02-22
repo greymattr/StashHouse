@@ -44,8 +44,7 @@ SRC_PATH = .
 # Files for creating libraries ( without main.c)
 LIB_FILES = 
 ifneq ($(LIB_FILES),)
-$(info will build library [${BIN_NAME}.so.o])
-endif
+
 # General compiler flags
 #COMPILE_FLAGS = -std=c++11 -Wall -Wextra
 COMPILE_FLAGS = -Wall -Wextra
@@ -83,7 +82,7 @@ export CMD_PREFIX = @
 ifeq ($(V),true)
 	CMD_PREFIX = 
 endif
-ifeq ($(V),1)
+ifeq ($(VERBOSE),1)
 	CMD_PREFIX = 
 endif
 
@@ -148,7 +147,7 @@ VERSION_REVISION := 0
 release: dirs
 	@echo "Beginning release build v$(VERSION_STRING)"
 	@$(START_TIME)
-	@$(MAKE) all --no-print-directory
+	$(CMD_PREFIX)$(MAKE) all --no-print-directory
 	@echo -n "Total build time: "
 	@$(END_TIME)
 
@@ -157,7 +156,7 @@ release: dirs
 debug: dirs
 	@echo "Beginning debug build v$(VERSION_STRING)"
 	@$(START_TIME)
-	@$(MAKE) all --no-print-directory
+	$(CMD_PREFIX)$(MAKE) all --no-print-directory
 	@echo -n "Total build time: "
 	@$(END_TIME)
 
@@ -165,41 +164,42 @@ debug: dirs
 .PHONY: dirs
 dirs:
 	@echo "Creating directories"
-	@mkdir -p $(dir $(OBJECTS))
-	@mkdir -p $(BIN_PATH)
+	$(CMD_PREFIX)mkdir -p $(dir $(OBJECTS))
+	$(CMD_PREFIX)mkdir -p $(BIN_PATH)
 ifneq ($(LIB_FILES),)
-	@mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/include
+	$(CMD_PREFIX)mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/include
 endif
 
 # Installs to the set path
 .PHONY: install
 install:
+	@echo "Running make install"
 	@echo "Installing to $(DESTDIR)$(INSTALL_PREFIX)/bin"
-	@install -m 0755 $(BIN_PATH)/$(BIN_NAME) $(DESTDIR)$(INSTALL_PREFIX)/bin
+	$(CMD_PREFIX)install -m 0755 $(BIN_PATH)/$(BIN_NAME) $(DESTDIR)$(INSTALL_PREFIX)/bin
 
 # Removes all build files
 .PHONY: clean
 clean:
 	@echo "Deleting $(BIN_NAME) symlink"
-	@$(RM) $(BIN_NAME)
+	$(CMD_PREFIX)$(RM) $(BIN_NAME)
 	@echo "Deleting directories"
-	@$(RM) -r build
-	@$(RM) -r bin
+	$(CMD_PREFIX)$(RM) -r build
+	$(CMD_PREFIX)$(RM) -r bin
 ifneq ($(LIB_FILES),)
-	@$(RM) -rf lib include
-	@$(RM) $(BIN_NAME).a $(BIN_NAME).so.o
+	$(CMD_PREFIX)$(RM) -rf lib include
+	$(CMD_PREFIX)$(RM) $(BIN_NAME).a $(BIN_NAME).so.o
 endif
 	
 ifneq ($(LIB_FILES),)
 lib: $(BIN_NAME).a
 	@echo "installing $(BIN_NAME).a $(BIN_NAME).so.o in $(DESTDIR)$(INSTALL_PREFIX)/lib"
-	@mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/lib
-	@install -m 0755 $(BIN_NAME).a $(BIN_NAME).so.o $(DESTDIR)$(INSTALL_PREFIX)/lib
-#	@mv $(DESTDIR)$(INSTALL_PREFIX)/lib/$(BIN_NAME).so.o $(DESTDIR)$(INSTALL_PREFIX)/lib/$(BIN_NAME).$(VERSION_MAJOR).$(VERSION_MINOR).so.o
-	@$(RM) $(BIN_NAME).a
-	@$(RM) -f $(BIN_NAME).so.o
+	$(CMD_PREFIX)mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/lib
+	$(CMD_PREFIX)install -m 0755 $(BIN_NAME).a $(BIN_NAME).so.o $(DESTDIR)$(INSTALL_PREFIX)/lib
+#	$(CMD_PREFIX)mv $(DESTDIR)$(INSTALL_PREFIX)/lib/$(BIN_NAME).so.o $(DESTDIR)$(INSTALL_PREFIX)/lib/$(BIN_NAME).$(VERSION_MAJOR).$(VERSION_MINOR).so.o
+	$(CMD_PREFIX)$(RM) $(BIN_NAME).a
+	$(CMD_PREFIX)$(RM) -f $(BIN_NAME).so.o
 	@echo "Installing $(LIB_INCLUDE_FILES) to $(DESTDIR)$(INSTALL_PREFIX)/include"
-	@install -m 0644 $(LIB_INCLUDE_FILES) $(DESTDIR)$(INSTALL_PREFIX)/include
+	$(CMD_PREFIX)install -m 0644 $(LIB_INCLUDE_FILES) $(DESTDIR)$(INSTALL_PREFIX)/include
 	
 $(BIN_NAME).a: $(BIN_NAME).so.o
 	@echo "creating static lib $@"
@@ -218,8 +218,8 @@ else
 all: $(BIN_PATH)/$(BIN_NAME)
 endif
 	@echo "Making symlink: $(BIN_NAME) -> $<"
-	@$(RM) $(BIN_NAME)
-	@ln -s $(BIN_PATH)/$(BIN_NAME) $(BIN_NAME)
+	$(CMD_PREFIX)$(RM) $(BIN_NAME)
+	$(CMD_PREFIX)ln -s $(BIN_PATH)/$(BIN_NAME) $(BIN_NAME)
 
 # Link the executable
 $(BIN_PATH)/$(BIN_NAME): $(OBJECTS)
@@ -246,7 +246,7 @@ format_source: $(SOURCES) $(LIB_INCLUDE_FILES)
 ifneq ($(ASTYLE),)
 	@echo "Running: $(ASTYLE) $(SOURCES) $(LIB_INCLUDE_FILES)"
 #	@astyle -vjA10 -D --indent=spaces=2 $(SOURCES) $(LIB_INCLUDE_FILES)
-	@$(ASTYLE) $(SOURCES) $(LIB_INCLUDE_FILES)
+	$(CMD_PREFIX)$(ASTYLE) $(SOURCES) $(LIB_INCLUDE_FILES)
 else
 	@echo "no code formating tool found"
 endif
