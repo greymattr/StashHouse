@@ -208,7 +208,7 @@ $(BIN_NAME).a: $(BIN_NAME).so.o
 $(BIN_NAME).so.o: $(LIB_FILES)
 	@echo "creating dynamic lib $@"
 #	gcc -c -o $@ $<
-	$(CMD_PREFIX)$(CXX) $(CXXFLAGS) $(INCLUDES) -fPIC -c -o $@ $<
+	$(CMD_PREFIX)$(BCC) $(CXXFLAGS) $(INCLUDES) -fPIC -c -o $@ $<
 endif
 
 # Main rule, checks the executable and symlinks to the output
