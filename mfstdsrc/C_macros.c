@@ -14,9 +14,9 @@
 
 
 #if defined NDEBUG
-    #define TRACE( format, ... )
+#define TRACE( format, ... )
 #else
-    #define TRACE( format, ... )   printf( "%s::%s(%d)" format, __FILE__, __FUNCTION__,  __LINE__, __VA_ARGS__ )
+#define TRACE( format, ... )   printf( "%s::%s(%d)" format, __FILE__, __FUNCTION__,  __LINE__, __VA_ARGS__ )
 #endif
 
 #define LENGTH(array) (sizeof(array) / sizeof (array[0]))
@@ -28,14 +28,14 @@
 
 /// Determine whether the given signed or unsigned integer is odd.
 #define IS_ODD( num )   ((num) & 1)
- 
+
 /// Determine whether the given signed or unsigned integer is even.
 #define IS_EVEN( num )  (!IS_ODD( (num) ))
- 
+
 /**
 Determine whether the given number is between the other two numbers
 (both inclusive).
 */
 #define IS_BETWEEN( numToTest, numLow, numHigh )
-        ((unsigned char)((numToTest) >= (numLow) && (numToTest) <= (numHigh)))
-				
+( ( unsigned char )( ( numToTest ) >= ( numLow ) && ( numToTest ) <= ( numHigh ) ) )
+

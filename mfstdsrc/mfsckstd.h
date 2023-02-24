@@ -132,24 +132,24 @@
 
 #define MFDEBUG         /* to make API verbose */
 
-extern int is_ip_address(const char *ip);
-extern int tcp_send_file(char *filed, char *ipaddr, int port);
-extern int udp_send_file(char *fname, char *ipaddr, int portto, int portfrom);
-extern int fdprintf(int fd, const char *fmt, ...);
-extern int sdprintf(int fd, const char *fmt, ...);
-extern int tcp_connect(char *host, int sock);
-extern int udp_connect(char *host, int sock);
-extern int tcp_connect_from(int locprt, char *host, int sock);
-extern int udp_connect_from(int locprt, char *host, int sock);
-extern int init_udp(int udp_port);
-extern int init_tcp(int tcp_port);
-extern int mf_tcp_server(int locprt, int (*callback)());
+extern int is_ip_address( const char *ip );
+extern int tcp_send_file( char *filed, char *ipaddr, int port );
+extern int udp_send_file( char *fname, char *ipaddr, int portto, int portfrom );
+extern int fdprintf( int fd, const char *fmt, ... );
+extern int sdprintf( int fd, const char *fmt, ... );
+extern int tcp_connect( char *host, int sock );
+extern int udp_connect( char *host, int sock );
+extern int tcp_connect_from( int locprt, char *host, int sock );
+extern int udp_connect_from( int locprt, char *host, int sock );
+extern int init_udp( int udp_port );
+extern int init_tcp( int tcp_port );
+extern int mf_tcp_server( int locprt, int ( *callback )() );
 
-extern int mf_dprintf(const char *fmt, ...);
+extern int mf_dprintf( const char *fmt, ... );
 
 #define NEED_MF_CRC
 #ifdef  NEED_MF_CRC
-extern unsigned long crc32(const char *);
+extern unsigned long crc32( const char * );
 #endif
 
 #endif	/* __mfstd_h */

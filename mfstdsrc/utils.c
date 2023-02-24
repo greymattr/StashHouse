@@ -28,21 +28,21 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-void cmd_wrapper(char *res, int res_len, char *cmd)
+void cmd_wrapper( char *res, int res_len, char *cmd )
 {
-	FILE *f;  
-	int ok=0;
-	
-	f = popen(cmd, "r");
-	if ( f != NULL ) {
-		memset(res, 0, res_len);
-		ok = fread(res, 1, res_len-1, f);
-		if(res[ok-1] == 0x0a ){
-			res[ok-1]=0;
-		}
-		pclose(f);
-	}
-	return ;
+  FILE *f;
+  int ok=0;
+
+  f = popen( cmd, "r" );
+  if ( f != NULL ) {
+    memset( res, 0, res_len );
+    ok = fread( res, 1, res_len-1, f );
+    if( res[ok-1] == 0x0a ) {
+      res[ok-1]=0;
+    }
+    pclose( f );
+  }
+  return ;
 }
 
 

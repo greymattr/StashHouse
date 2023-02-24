@@ -62,9 +62,9 @@ extern void block( int d );
 extern int init_serial( char *p );
 
 extern void set_baud( int sd, int baud );
-extern void set_parity( int sd, int p);
-extern void set_flowctrl( int sd, int flow);
-extern void set_charsize( int sd, int size);
+extern void set_parity( int sd, int p );
+extern void set_flowctrl( int sd, int flow );
+extern void set_charsize( int sd, int size );
 
 extern int cd_hi( int sd );
 extern int cd_low( int sd );
@@ -72,9 +72,9 @@ extern int cts_low( int sd );
 extern int rts_low( int sd );
 extern int cts_hi( int sd );
 extern unsigned int get_ser_stat( int ser );
-extern int mwrite(int fd, char *buf, int size);
-extern void set_max_char_delay(int sd, int num);
-extern void set_maxread(int sd, int num);
+extern int mwrite( int fd, char *buf, int size );
+extern void set_max_char_delay( int sd, int num );
+extern void set_maxread( int sd, int num );
 
 
 #endif
