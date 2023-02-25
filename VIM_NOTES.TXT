@@ -17,6 +17,10 @@ search and replace
   Example replace 'Matt' with 'Matthew'
   :%s/Matt/Matthew/g
 
+Doxygen comments
+  :Dox
+
+
 visual file explorer
   :Vex
   :Lex
