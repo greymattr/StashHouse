@@ -185,6 +185,7 @@ clean:
 	@echo "Deleting directories"
 	$(CMD_PREFIX)$(RM) -r build
 	$(CMD_PREFIX)$(RM) -r bin
+	$(CMD_PREFIX)$(RM) -rf docs
 ifneq ($(LIB_FILES),)
 	$(CMD_PREFIX)$(RM) -rf lib include
 	$(CMD_PREFIX)$(RM) $(BIN_NAME).a $(BIN_NAME).so.o
@@ -252,3 +253,6 @@ else
 endif
 
 format: format_source
+
+docs: $(SOURCES)
+	$(CMD_PREFIX)doxygen Doxyfile
