@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <sys/ioctl.h>
 
 void cmd_wrapper( char *res, int res_len, char *cmd )
 {
@@ -257,4 +258,150 @@ int fdopenexec( char *executable )
     ok = dup( master );
   }
   return ok;
+}
+
+
+char* recv_all(int sockfd) {
+  // Create a buffer to store received data
+  char buffer[1024];
+  memset(buffer, 0, sizeof(buffer));
+  
+  // Create a string to store received data
+  char* data = NULL;
+  size_t data_len = 0;
+  
+  // Use select to wait for data to be available
+  fd_set read_fds;
+  FD_ZERO(&read_fds);
+  FD_SET(sockfd, &read_fds);
+  struct timeval tv;
+  tv.tv_sec = 10; // timeout in 10 seconds
+  tv.tv_usec = 0;
+  int select_ret = select(sockfd + 1, &read_fds, NULL, NULL, &tv);
+  if (select_ret < 0) {
+    perror("select error");
+    return NULL;
+  } else if (select_ret == 0) {
+    printf("timeout waiting for data\n");
+    return NULL;
+  }
+  
+  // Loop until there is no more data to receive
+  while (1) {
+    // Receive data from the socket
+    ssize_t recv_ret = recv(sockfd, buffer, sizeof(buffer), 0);
+    if (recv_ret < 0) {
+      perror("recv error");
+      free(data);
+      return NULL;
+    } else if (recv_ret == 0) {
+      break; // no more data to receive
+    }
+    
+    // Resize the data string to accommodate the new data
+    data_len += recv_ret;
+    data = realloc(data, data_len);
+    if (data == NULL) {
+      perror("realloc error");
+      free(data);
+      return NULL;
+    }
+    
+    // Append the received data to the data string
+    memcpy(data + data_len - recv_ret, buffer, recv_ret);
+  }
+  
+  // Null-terminate the data string
+  data = realloc(data, data_len + 1);
+  if (data == NULL) {
+    perror("realloc error");
+    free(data);
+    return NULL;
+  }
+  data[data_len] = '\0';
+  
+  return data;
+}
+
+char *read_all( int fd, unsigned int secs )
+{
+  ssize_t read_ret = 0;
+  // Create a buffer to store received data
+  char buffer[1024];
+  
+  memset( buffer, 0, sizeof( buffer ) );
+  
+  // Create a string to store received data
+  char* data = NULL;
+  size_t data_len = 0;
+  
+  // Use select to wait for data to be available
+  fd_set read_fds;
+  FD_ZERO( &read_fds );
+  FD_SET( fd, &read_fds );
+  struct timeval tv;
+  tv.tv_sec = secs; // timeout
+  tv.tv_usec = 0;
+  
+  
+  int select_ret = select( fd + 1, &read_fds, NULL, NULL, &tv );
+  if ( select_ret < 0 ) {
+    perror( "select error" );
+    return NULL;
+  } else if ( select_ret == 0 ) {
+    printf( "timeout waiting for data\n" );
+    return NULL;
+  }
+  
+  // Loop until there is no more data to receive
+  while ( 1 ) {
+    // Receive data from the socket
+    read_ret = read( fd, buffer, sizeof( buffer ) );
+    if ( read_ret < 0 ) {
+      perror( "recv error" );
+      free( data );
+      return NULL;
+    } else if ( read_ret == 0 ) {
+      break; // no more data to receive
+    }
+    
+    // Resize the data string to accommodate the new data
+    data_len += read_ret;
+    data = realloc( data, data_len );
+    if ( data == NULL ) {
+      perror( "realloc error" );
+      free( data );
+      return NULL;
+    }
+    
+    // Append the received data to the data string
+    memcpy( data + data_len - read_ret, buffer, read_ret );
+  }
+  
+  // Null-terminate the data string
+  data = realloc( data, data_len + 1 );
+  if ( data == NULL ) {
+    perror( "realloc error" );
+    free( data );
+    return NULL;
+  }
+  data[data_len] = '\0';
+  
+  return data;
+}
+
+
+char *get_cmd_output( char *cmd, unsigned int timeout )
+{
+  FILE *f = NULL;
+  int fd = 0;
+  char *output = NULL;
+  
+  f = popen( cmd, "r" );
+  if ( f != NULL ) {
+    fd = fileno( f );
+    output = read_all(fd, timeout);
+    pclose( f );
+  }
+  return output;
 }
