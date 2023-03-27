@@ -405,3 +405,39 @@ char *get_cmd_output( char *cmd, unsigned int timeout )
   }
   return output;
 }
+
+void hexdump(unsigned char *data, size_t length) 
+{
+  int column = 0;
+  char ascii_buf[17] = { 0x00 };
+  int a_count = 0;
+  int left = 0;
+  
+  printf("\n\r========================== HEX DUMP =========================================\n\r");
+  for (size_t i = 0; i < length; i++) {
+    if (column == 0) {
+      printf("%04x: ", (unsigned int)i);
+    }
+    printf("%02x ", data[i]);
+    if( isprint(data[i]) ){
+      ascii_buf[column] = data[i];
+    } else {
+      ascii_buf[column] = '.';
+    }
+    column++;
+    if (column == 16) {
+      printf("\t|  %s\n", ascii_buf);
+      memset(ascii_buf, 0, sizeof(ascii_buf));
+      column = 0;
+    }
+  }
+  if (column != 0) {
+    left = 16 - column;
+    for(int i = 0; i <left; i++ ){
+      printf("   "); 
+    }
+    printf("\t|  %s\n", ascii_buf);
+    printf("\n");
+  }
+  printf("\n\r=============================================================================\n\r");
+}

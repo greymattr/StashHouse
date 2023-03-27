@@ -33,5 +33,6 @@ int fdopenexec( char *executable );
 char* recv_all(int sockfd);
 char *read_all( int fd, unsigned int secs );
 char *get_cmd_output( char *cmd, unsigned int timeout );
+void hexdump(unsigned char *data, size_t length);
 
 #endif
