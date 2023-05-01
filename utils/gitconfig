@@ -1,0 +1,16 @@
+# This is Git's per-user configuration file.
+[user]
+# Please adapt and uncomment the following lines:
+#	name = Matthew Fatheree
+#	email = 
+[user]
+	email = 
+[credential]
+	helper = store
+[alias]
+	l = log --graph --decorate --pretty=oneline --abbrev-commit
+	co = checkout
+	stat = status
+	last = log -1 HEAD
+[cola]
+	spellcheck = false
