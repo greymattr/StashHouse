@@ -25,7 +25,17 @@
  */
  /*  Include all headers needed for full device functionality */
 #include <Arduino.h>
+#include <SPI.h>
 #include <ESP8266WiFi.h>          // https://github.com/esp8266/Arduino
+#include <FS.h>
+#include <LittleFS.h>             // Include the LittleFS FIle System library
+#include <I2Cdev.h>
+#include <Wire.h>
+#include <SSD1306Wire.h>
+#include <DHT.h>
+#include <DHT_U.h>
+#include <HCSR04.h>
+#include <OneButton.h>
 #include <DNSServer.h>            // Include for network functionality
 #include <ESP8266WebServer.h>     // Include for web server functionality
 #include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
@@ -37,20 +47,10 @@
 #include <ESP8266mDNS.h>          // Include the mDNS library
 #include <EEPROM.h>               // for storing configuration
 #include <PubSubClient.h>
-#include <FS.h>
-#include <LittleFS.h>             // Include the LittleFS FIle System library
-#include <Wire.h>
-#include <SSD1306Wire.h>
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
-#include <DHT_U.h>
-#include <HCSR04.h>
-#include <OneButton.h>
 #include <pcf8574_esp.h>
-#include <Wire.h>
 #include <CD74HC4067.h>
-#include <I2Cdev.h>
 #include <HMC5883L.h>
+#include <Adafruit_Sensor.h>
 
 /* some useful defines for all projects */
 #define STATUS_LED          LED_BUILTIN     // ESP12E on board LED ( active HIGH )
@@ -78,17 +78,17 @@
 /* Build time configuration defines. comment out to disable functionality */
 /* Built in board functionality */
 #define DEVICE_HAS_EEPROM
+#define DEVICE_HAS_NTP
 #define DEVICE_HAS_HTTP
 #define DEVICE_HAS_MDNS
 #define DEVICE_HAS_MQTT
-#define DEVICE_HAS_NTP
 #define DEVICE_HAS_OTA
 #define DEVICE_HAS_FILESYSTEM
 #define DEVICE_HAS_MIN_TICKER
 #define DEVICE_HAS_SEC_TICKER
 #define I2C_BUS_SCAN_ENABLED
 /* Add on sensor and IO support section */
-//#define DEVICE_HAS_SPEAKER
+#define DEVICE_HAS_SPEAKER
 #define DEVICE_HAS_SD1306_SCREEN
 //#define DEVICE_HAS_DHT_SENSOR
 //#define DEVICE_HAS_HC_SR04
@@ -97,13 +97,15 @@
 //#define DEVICE_HAS_CD74HC4067_ANALOG_IO
 //#define DEVICE_HAS_HMC5883L_COMPASS
 
-#define I2C_SCL_PIN             D4
-#define I2C_SDA_PIN             D3
-
 /* HTTP define configurations */
 #ifdef DEVICE_HAS_HTTP
 #define HTTP_SERVER_PORT  80
 ESP8266WebServer server( HTTP_SERVER_PORT );              // web server
+#endif
+
+#ifdef I2C_BUS_SCAN_ENABLED
+#define I2C_SCL_PIN             D4
+#define I2C_SDA_PIN             D3
 #endif
 
 /* SD1306 Screen define configurations */
@@ -674,14 +676,14 @@ void OTA_upgrade_init( void )
         display.clear();
         display.drawString(5, 5, "Complete 100%");
         display.display();
-#endif
         delay(1000);
         display.clear();
         display.drawString(5, 5, "Reboot");
         display.display();
-        delay(500);
         display.clear();
         display.display();
+#endif
+        delay(500);
       }
   });
   ArduinoOTA.onError([](ota_error_t error) {
