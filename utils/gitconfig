@@ -2,15 +2,45 @@
 [user]
 # Please adapt and uncomment the following lines:
 #	name = Matthew Fatheree
-#	email = 
+#	email = greymattr@gmail.com
 [user]
-	email = 
+  name = Matthew Fatheree
+  email = greymattr@gmail.com
 [credential]
 	helper = store
 [alias]
+# pretty logs
 	l = log --graph --decorate --pretty=oneline --abbrev-commit
-	co = checkout
-	stat = status
-	last = log -1 HEAD
+  lx = log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short
+# checkout shortcut
+  co = checkout
+# status shortcuts
+  stat = status
+  s = status
+# qucik access to last log entry
+  last = log -1 HEAD --stat
+# show long hash and short hash
+  lhash = !git log -n 1 | head -n 1 | sed -e 's/^commit //'
+  shash = !git log -n 1 | head -n 1 | sed -e 's/^commit //' | head -c 8 && echo "\n"
+# commit with message
+  cm = commit -m
+# search comits for a word
+  search = !git rev-list --all | xargs git grep -F
+# alias list
+  alias = !git config -l | grep alias | cut -c 7-
+# checkout last branch
+  back = checkout @{-1}
+# create new branch and checkout
+  cob = checkout -b
+# pretty branch list
+  br = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
+# undo last commit / push
+  undo = reset HEAD~1 --mixed
+# reset all modified files
+  resetall = !git reset --hard
+# show contributions to repo
+  contrib = shortlog -e --summary --numbered
 [cola]
 	spellcheck = false
+[color]
+	ui = auto
