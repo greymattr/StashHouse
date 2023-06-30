@@ -43,7 +43,6 @@ ASTYLE=astyle -vjA10 -n -D --indent=spaces=2
 SRC_PATH = .
 # Files for creating libraries ( without main.c)
 LIB_FILES = 
-ifneq ($(LIB_FILES),)
 
 # General compiler flags
 #COMPILE_FLAGS = -std=c++11 -Wall -Wextra
