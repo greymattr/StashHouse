@@ -200,10 +200,12 @@ TabBuffer
 
 
 vimdiff
-  :do - get changes from other file
-  :dp - put changes from this file to other file
+  do - get changes from other file
+  dp - put changes from this file to other file
   ]c  - next diff
   [c  - previous diff
+  zR  - open all folds
+  zM  - close all folds
   :diffupdate - update files after change
 
 TIPS AND TRICKS
