@@ -25,32 +25,32 @@
  */
  /*  Include all headers needed for full device functionality */
 #include <Arduino.h>
-#include <SPI.h>
+#include <SPI.h>                  // SPI devices
 #include <ESP8266WiFi.h>          // https://github.com/esp8266/Arduino
-#include <FS.h>
+#include <FS.h>                   // SPIFFS file system 
 #include <LittleFS.h>             // Include the LittleFS FIle System library
-#include <I2Cdev.h>
-#include <Wire.h>
-#include <SSD1306Wire.h>
-#include <DHT.h>
-#include <DHT_U.h>
-#include <HCSR04.h>
-#include <OneButton.h>
+#include <I2Cdev.h>               // I2C devices
+#include <Wire.h>                 // one wire support
+#include <SSD1306Wire.h>          // SSD1306 OLED display 
+#include <DHT.h>                  // DHT temp sensor
+#include <DHT_U.h>                // DHT temp sensor
+#include <HCSR04.h>               // HC SR04 distance sensor
+#include <OneButton.h>            // button
 #include <DNSServer.h>            // Include for network functionality
 #include <ESP8266WebServer.h>     // Include for web server functionality
 #include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
 #include <WiFiClient.h>           // for connection to AP
 #include <Ticker.h>               // for LED status indicator
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+#include <NTPClient.h>            // NTP time client
+#include <WiFiUdp.h>              // raw UDP packets
+#include <ArduinoOTA.h>           // Over the air upgrade
 #include <ESP8266mDNS.h>          // Include the mDNS library
 #include <EEPROM.h>               // for storing configuration
-#include <PubSubClient.h>
-#include <pcf8574_esp.h>
-#include <CD74HC4067.h>
-#include <HMC5883L.h>
-#include <Adafruit_Sensor.h>
+#include <PubSubClient.h>         // MQTT pub sub clients
+#include <pcf8574_esp.h>          // PCF8574 GPIO data expander over I2C     
+#include <CD74HC4067.h>           // CD74HC4067 16 channel analog multiplexer
+#include <HMC5883L.h>             // HMC5883L 3 axis digital compass
+#include <Adafruit_Sensor.h>      // common sensor library
 
 /* some useful defines for all projects */
 #define STATUS_LED          LED_BUILTIN     // ESP12E on board LED ( active HIGH )
@@ -86,13 +86,14 @@
 #define DEVICE_HAS_FILESYSTEM
 #define DEVICE_HAS_MIN_TICKER
 #define DEVICE_HAS_SEC_TICKER
+
+/* Add on sensor and IO support section for external devices */
 #define I2C_BUS_SCAN_ENABLED
-/* Add on sensor and IO support section */
-#define DEVICE_HAS_SPEAKER
-#define DEVICE_HAS_SD1306_SCREEN
+//#define DEVICE_HAS_SPEAKER
+//#define DEVICE_HAS_SD1306_SCREEN
 //#define DEVICE_HAS_DHT_SENSOR
 //#define DEVICE_HAS_HC_SR04
-#define DEVICE_HAS_BUTTON
+//#define DEVICE_HAS_BUTTON
 //#define DEVICE_HAS_PCF8574_DIGITAL_IO
 //#define DEVICE_HAS_CD74HC4067_ANALOG_IO
 //#define DEVICE_HAS_HMC5883L_COMPASS
@@ -113,6 +114,8 @@ ESP8266WebServer server( HTTP_SERVER_PORT );              // web server
 #define SCREEN_WIDTH        128
 #define SCREEN_HEIGH        64
 #define SD1306_ADDR         0x3c
+//#define I2C_SCL_PIN             D4
+//#define I2C_SDA_PIN             D3
 #define SD1306_SCL_PIN      I2C_SCL_PIN
 #define SD1306_SDA_PIN      I2C_SDA_PIN
 SSD1306Wire  display(SD1306_ADDR, I2C_SDA_PIN, I2C_SCL_PIN); // SSD1306 Display init
@@ -159,7 +162,7 @@ UltraSonicDistanceSensor distanceSensor(HCSR04_ECHO_PIN, HCSR04_TRIG_PIN);
 
 /* MQTT define configurations */
 #ifdef DEVICE_HAS_MQTT
-#define MQTT_SERVER         "greysic.com"   // MQTT server
+#define MQTT_SERVER         "localhost"   // MQTT server
 const char* mqtt_server = MQTT_SERVER;
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -176,6 +179,8 @@ OneButton button_1(BUTTON_PIN, true);         // active low
 #endif
 
 #ifdef DEVICE_HAS_PCF8574_DIGITAL_IO
+//#define I2C_SCL_PIN             D4
+//#define I2C_SDA_PIN             D3
 #define PCF8574_SDA_PIN    I2C_SDA_PIN
 #define PCF8574_SCL_PIN    I2C_SCL_PIN
 #define PCF8574_ADDR       0x20
