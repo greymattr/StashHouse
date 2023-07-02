@@ -190,14 +190,11 @@ map <C-n> :NERDTreeToggle<CR>
 
 
 
-
 TabBuffer
   <CTRL>-j   switch buffers
   <CTRL>-k   switch buffers
-
-
-
-
+  
+  
 
 vimdiff
   do - get changes from other file
