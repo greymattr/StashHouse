@@ -103,7 +103,7 @@ int fdreadline_t( int fd, char *buf, int len, int maxtime );
 int search_string( char *key, char *buf );
 int suspect( int fd, char *key, int timeout );
 int fdopenexec( char *executable );
-char* recv_all(int sockfd);
+char *recv_all(int sockfd);
 char *read_all( int fd, unsigned int secs );
 char *get_cmd_output( char *cmd, unsigned int timeout );
 void hexdump(unsigned char *data, size_t length);

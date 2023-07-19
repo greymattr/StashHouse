@@ -261,7 +261,7 @@ int fdopenexec( char *executable )
 }
 
 
-char* recv_all(int sockfd) {
+char *recv_all(int sockfd) {
   // Create a buffer to store received data
   char buffer[1024];
   memset(buffer, 0, sizeof(buffer));
