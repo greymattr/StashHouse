@@ -390,7 +390,9 @@ aireplay-ng -1 5 -e "A76I1" -b 00:18:01:e9:0c:c5 -h 00:18:01:26:90:e6 ath1
 
 
 
-
+set git information for a single repo
+git config user.name "Your Name Here"
+git config user.email your@email.example
 
 
 ------------------------

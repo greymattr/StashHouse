@@ -109,7 +109,7 @@ Close terminal
 Switch between window buffers ( splits )
   <CTRL>-w w
 
-Open new unnamed buffer without closeing current buffer
+Open new unnamed buffer without closing current buffer
   <CTRL>-w o
 
 Word wrap in visual mode
@@ -157,7 +157,7 @@ use visual mode and insert to comment a block of code
   <CTRL>-v
   highlight rows
   SHIFT-I
-  #, or // depending con comments
+  #, or // depending on comments
   <ESC><ESC>
 
 

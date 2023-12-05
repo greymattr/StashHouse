@@ -2,7 +2,7 @@
 [user]
 # Please adapt and uncomment the following lines:
 #	name = Matthew Fatheree
-#	email = greymattr@gmail.com
+#	email = <something>@gmail.com
 [user]
   name = Matthew Fatheree
   email = greymattr@gmail.com
@@ -40,6 +40,24 @@
   resetall = !git reset --hard
 # show contributions to repo
   contrib = shortlog -e --summary --numbered
+# create a patch from diff of previous commit to current files
+  patchlast = !git format-patch HEAD~1
+# unstage files
+  unstage = reset HEAD --
+# git reflog - ( history )
+  hist = reflog
+# stash list
+  stashls = stash list
+  stl = stash list
+# this one is fun git get = git clone
+  get = clone
+# undo everything
+  unfuk = !git reset --hard && git clean -fdx
+# start patch
+  patchstart = !git init && git add * && git commit -m "patchstart"
+#
+  rmremote = push origin --delete
+  
 [cola]
 	spellcheck = false
 [color]
