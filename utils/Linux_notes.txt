@@ -400,3 +400,6 @@ git config user.email your@email.example
 save iptables rules as default ( make them persistent )
 sudo dpkg-reconfigure iptables-persistent
 
+shell command reverse lookup
+<CTRL>-r ( then start typing the command you are looking for )
+
