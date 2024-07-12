@@ -25,6 +25,9 @@ set expandtab
 " set auto-indentation on
 set autoindent
 
+" paste doesn't reformat
+set paste
+
 " show line numbers
 set number
 set ruler
