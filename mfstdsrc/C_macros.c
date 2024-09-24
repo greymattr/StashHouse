@@ -39,3 +39,23 @@ Determine whether the given number is between the other two numbers
 #define IS_BETWEEN( numToTest, numLow, numHigh )
 ( ( unsigned char )( ( numToTest ) >= ( numLow ) && ( numToTest ) <= ( numHigh ) ) )
 
+/* some macros to make C more human readable, and confuse c programmers */
+/* from: https://aartaka.me/c-not-c */
+#include <iso646.h>
+#define eq ==
+#define bitnot ~
+#define bitxor ^
+ 
+#define is ==
+#define isnt !=
+
+#if defined(4) || defined(__GNUG__)
+#define var __auto_type
+#define let __auto_type
+#define local __auto_type
+#elif __STDC_VERSION__ > 201710L || defined(__cplusplus)
+#define var auto
+#define let auto
+#define local auto
+#endif
+
