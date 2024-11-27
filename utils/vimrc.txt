@@ -1,3 +1,4 @@
+" Basic options
 set nocompatible
 
 set smartindent
@@ -25,9 +26,6 @@ set expandtab
 " set auto-indentation on
 set autoindent
 
-" paste doesn't reformat
-set paste
-
 " show line numbers
 set number
 set ruler
@@ -43,6 +41,10 @@ set hlsearch
 
 " set hidden
 set hidden
+
+" paste doesn't reformat with comments and indentation
+" paste also breaks snippets from being completed with the TAB key so :set nopaste if you need those to work
+set paste
 
 " dont wrap words
 set textwidth=0
@@ -86,6 +88,10 @@ set mousehide
 " Enable the popup menu.
 set mousem=popup
 
+" Set this to the name of your terminal that supports mouse codes.
+" Must be one of: xterm, xterm2, netterm, dec, jsbterm, pterm
+set ttymouse=xterm2
+
 " copy stuff to and from system clipboard
 set clipboard=unnamedplus
 
@@ -120,72 +126,104 @@ function! s:template_keywords()
 	" And more... 
 endfunction
 
-
+"autocmd BufNewFile  *.cgi call s:template_keywords() 
+"function! s:template_keywords() 
+"	0r ~/.vim/templates/shell_cgi.cgi
+"	%s//home/matthewf/.vimrc/\=expand('%')/g 
+"	" And more... 
+"endfunction
 
 set ofu=syntaxcomplete#Complete
 
+" Plugins
+call plug#begin()
 
-function! BufSel(pattern)
-  let bufcount = bufnr("$")
-  let currbufnr = 1
-  let nummatches = 0
-  let firstmatchingbufnr = 0
-  while currbufnr <= bufcount
-    if(bufexists(currbufnr))
-      let currbufname = bufname(currbufnr)
-      if(match(currbufname, a:pattern) > -1)
-        echo currbufnr . ": ". bufname(currbufnr)
-        let nummatches += 1
-        let firstmatchingbufnr = currbufnr
-      endif
-    endif
-    let currbufnr = currbufnr + 1
-  endwhile
-  if(nummatches == 1)
-    execute ":buffer ". firstmatchingbufnr
-  elseif(nummatches > 1)
-    let desiredbufnr = input("Enter buffer number: ")
-    if(strlen(desiredbufnr) != 0)
-      execute ":buffer ". desiredbufnr
-    endif
-  else
-    echo "No matching buffers"
-  endif
-endfunction
+Plug 'SirVer/ultisnips'
+Plug 'honza/vim-snippets'
+Plug 'mhinz/vim-signify'
+Plug 'tpope/vim-fugitive'
+Plug 'preservim/nerdcommenter'
+Plug 'preservim/nerdtree'
+Plug 'preservim/tagbar'
+Plug 'jeetsukumaran/vim-buffergator'
+Plug 'ap/vim-buftabline'
+Plug '0xStabby/chatgpt-vim'
+"Plug 'voldikss/vim-floaterm'
+"Plug 'CoderCookE/vim-chatgpt'
+Plug 'jakeroggenbuck/journal.vim'
+Plug 'normen/vim-pio'
+"Plug 'JBakamovic/cxxd-vim'
+"Plug 'JBakamovic/yaflandia'
+Plug 'ErikBjare/gptme', { 'rtp': 'scripts/vim' }
 
-"Bind the BufSel() function to a user-command
-command! -nargs=1 Bs :call BufSel("<args>")
+call plug#end()
 
+set guifont=Fira\ Code\ Retina\ 13
+
+"colorscheme darkblue
+
+if has('gui_running')
+  au VimEnter * colorscheme evening
+endif
+
+" quick buffer controls \n \p \d next, prev, delete
+" <leader>=\ 
+map <leader>n :bnext<cr>
+map <leader>p :bprevious<cr>
+map <leader>d :bdelete<cr>
+
+" quick buffers controls with CTRL x, CTRL z, CTRL d
+map <C-x> :bnext<CR>
+map <C-z> :bprev<CR>
+map <C-d> :bdelete<CR>
+
+" random remaps
+nmap <F7> :bo term ++rows=10<CR>
 nnoremap <F5> :buffers<CR>:buffer<Space>
+" CTRL-s saves
+map <C-S> :w!<CR>
+
+"CTRL p sets nopaste mode
+map <C-p> :set nopaste<CR>
+
+" plugin buftabline options
+let g:buftabline_indicators = 1
+
+map <C-n> :NERDTreeToggle<CR>
 
 " Serch word under cursor in current dir
 map <C-F> <esc>:Grep<CR>
 
-" command TAG :Tlist
-" command TAGSUPDATE :TlistUpdate
-" command TAGSAVE :TlistSessionSave tlist
-" command TAGLOAD :TlistSessionLoad tlist
-" command FILES   :Vex
+" ctrl m runs make
+nnoremap <C-m> :make<CR>
 
-" map <C-n> :NERDTreeToggle<CR>
+" make CTRL-W o close the current buffer, but create new buffer window
+" CTRL-W w moves between windows
+map <C-W>o <C-W>n<C-W><C-W><C-W>c
 
-autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
+"command Cfmt !/usr/bin/astyle -vjA10 -D --indent=spaces=2
 
-"if has("gui_running")
-  " GUI is running or is about to start.
-  " Maximize gvim window.
-"  set lines=999 columns=999
-"else
-  " This is console Vim.
-"  if exists("+lines")
-"    set lines=50
-"  endif
-"  if exists("+columns")
-"    set columns=100
-"  endif
-"endif
+"set runtimepath^=~/.vim/bundle/*/
+let g:bufExplorerSplitRight=0        " Split left
 
+let g:journals_directory = "/home/matthewf/werk/journals"
 
+" tagbar options
+nnoremap :tags  :Tagbar
+nmap <F4> :TagbarToggle<CR>
+let g:tagbar_autoclose = 1
+let g:tagbar_width = 30
+let g:tagbar_indent = 1
+let g:tagbar_show_linenumbers = 1
+let g:tagbar_show_tag_linenumbers = 2
+let g:tagbar_left = 1
+
+" buffergator options
+nmap <C-b> :BuffergatorToggle<CR>
+let g:buffergator_vsplit_size = 30
+let g:buffergator_autodismiss_on_select = 0
+
+nnoremap :Cfmt     :!astyle -vjA10 -D --indent=spaces=2 %
 
 nnoremap :EXIT   :qall!
 
@@ -207,42 +245,28 @@ let g:netrw_winsize = 15
 "  autocmd VimEnter * :Vexplore
 "augroup END
 
-" let g:tagbar_left = 1
+"let g:DoxygenToolkit_briefTag_pre="@Synopsis  "
+"let g:DoxygenToolkit_paramTag_pre="@Param "
+"let g:DoxygenToolkit_returnTag="@Returns   "
+"let g:DoxygenToolkit_blockHeader="--------------------------------------------------------------------------"
+"let g:DoxygenToolkit_blockFooter="----------------------------------------------------------------------------"
+let g:DoxygenToolkit_authorName="Matthew Fatheree"
 
-" move among buffers with CTRL
-map <C-J> :bnext<CR>
-map <C-K> :bprev<CR>
+let g:clang_library_path = "/usr/lib/llvm-6.0/lib/"
 
-" make CTRL-W o close the current buffer, but create new buffer window
-" CTRL-W w moves between windows
-map <C-W>o <C-W>n<C-W><C-W><C-W>c
-
-" nnoremap :tags  :Tagbar
-" nmap <F4> :TagbarToggle<CR>
-" let g:tagbar_autoclose = 1
-" let g:tagbar_width = 30
-" let g:tagbar_indent = 1
-" let g:tagbar_show_linenumbers = 1
-" let g:tagbar_show_tag_linenumbers = 2
-" let g:tagbar_left = 1
+" don't suto fold lines in vimdiff
+if &diff                               " only for diff mode/vimdiff
+    set diffopt=filler,context:1000000 " filler is default and inserts empty lines for sync
+endif
 
 " anything after col 80 will be highlighted
 " highlight rightMargin ctermfg=lightblue
 " match rightMargin /.\%>79v/
 
-call plug#begin()
-
-Plug 'SirVer/ultisnips'
-Plug 'honza/vim-snippets'
-Plug 'mhinz/vim-signify'
-Plug 'tpope/vim-fugitive'
-Plug 'preservim/nerdcommenter'
-Plug 'preservim/nerdtree'
-Plug 'preservim/tagbar'
-
-call plug#end()
 
 "set statusline=%F%m%r%h%w[%L][%{&ff}]%y[%p%%][%04l,%04v
 
-set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [ASCII=\%03.3b]\ [HEX=\%02.2B]\ [POS=%04l,%04v][%p%%]\ [LEN=%L]
+"set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [ASCII=\%03.3b]\ [HEX=\%02.2B]\ [POS=%04l,%04v][%p%%]\ [LEN=%L]
+
+set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [ASCII=\%03.3b]\ [HEX=\%02.2B]\ [POS=%04l,%04v][%p%%]\ [LEN=%L]\ F4-Tagbar\ F7-Term\ CTRL-b(uffers)\ CTRL-n(erdtree)\ %{FugitiveStatusline()}
 

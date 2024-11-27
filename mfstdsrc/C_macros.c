@@ -1,6 +1,7 @@
 #define SET_BIT(p,n)      ((p) |= (1 << (n)))
 #define CLR_BIT(p,n)      ((p) &= (~(1) << (n)))
 #define IS_BIT_SET(val, bit_no) (((val) >> (bit_no)) & 1)
+#define FLIP_BIT(num, pos) ((num) ^ (1 << (pos)))
 
 #define IMPLIES(x, y) (!(x) || (y))
 
